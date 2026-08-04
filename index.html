@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#070B14">
+<title>Vishwa × Rift — Voice Treasury</title>
+<style>
+  :root{
+    --bg:#070B14;
+    --bg2:#0B1120;
+    --glass:rgba(20,28,48,.72);
+    --glass-line:rgba(120,140,180,.16);
+    --ink:#F2F5FA;
+    --text:#9FACC4;
+    --faint:#5E6C87;
+    --lime:#C6F32E;
+    --lime-dim:rgba(198,243,46,.14);
+    --rift:#6E8BFF;
+    --rift-dim:rgba(110,139,255,.14);
+    --good:#3DDC97;
+    --good-dim:rgba(61,220,151,.12);
+    --bad:#FF6B6B;
+    --bad-dim:rgba(255,107,107,.12);
+    --amber:#FFC24B;
+    --mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;
+    --font:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:var(--font);background:var(--bg);color:var(--ink);
+    -webkit-font-smoothing:antialiased;overflow:hidden;
+  }
+  /* ambient background */
+  .ambient{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+  .ambient::before{content:'';position:absolute;width:520px;height:520px;border-radius:50%;
+    background:radial-gradient(circle,rgba(110,139,255,.16),transparent 65%);top:-180px;right:-160px}
+  .ambient::after{content:'';position:absolute;width:460px;height:460px;border-radius:50%;
+    background:radial-gradient(circle,rgba(198,243,46,.08),transparent 65%);bottom:-140px;left:-150px}
+
+  .app{
+    position:relative;z-index:1;height:100dvh;max-width:480px;margin:0 auto;
+    display:flex;flex-direction:column;
+    padding:calc(env(safe-area-inset-top, 12px) + 6px) 0 0;
+  }
+  @media(min-width:520px){
+    body{background:#03060C}
+    .app{border-left:1px solid var(--glass-line);border-right:1px solid var(--glass-line);background:var(--bg)}
+  }
+
+  /* ---------- header ---------- */
+  header{display:flex;align-items:center;gap:10px;padding:10px 18px 12px;flex:none}
+  .logo svg{height:24px;width:auto;display:block}
+  .xrift{display:flex;align-items:center;gap:8px}
+  .xrift .x{color:var(--faint);font-size:13px}
+  .xrift .rift{
+    font-family:var(--mono);font-weight:700;font-size:15px;letter-spacing:.14em;
+    background:linear-gradient(120deg,#8FA6FF,#5F7BFF);-webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .spacer{flex:1}
+  .live{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--text)}
+  .live i{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 8px var(--good);animation:breathe 2.4s infinite}
+  @keyframes breathe{0%,100%{opacity:1}50%{opacity:.45}}
+  .mute{border:1px solid var(--glass-line);background:var(--glass);color:var(--text);border-radius:999px;
+    width:32px;height:32px;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+
+  /* ---------- feed ---------- */
+  .feed{flex:1;overflow-y:auto;padding:6px 18px 18px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth}
+  .feed::-webkit-scrollbar{display:none}
+  .msg{max-width:92%;animation:rise .34s cubic-bezier(.2,.9,.3,1.2)}
+  @keyframes rise{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+  .msg.user{align-self:flex-end}
+  .msg.user .bubble{
+    background:linear-gradient(135deg,#223354,#18263F);
+    border:1px solid rgba(140,160,210,.22);color:var(--ink);
+    border-radius:18px 18px 5px 18px;padding:11px 15px;font-size:14.5px;
+  }
+  .msg.user .who{text-align:right}
+  .who{font-family:var(--mono);font-size:8px;letter-spacing:.16em;color:var(--faint);margin-bottom:5px}
+  .msg.agent .bubble{
+    background:var(--glass);border:1px solid var(--glass-line);backdrop-filter:blur(14px);
+    border-radius:5px 18px 18px 18px;padding:13px 15px;font-size:14px;line-height:1.55;color:var(--text);
+  }
+  .msg.agent .bubble b{color:var(--ink);font-weight:600}
+
+  /* cards inside agent bubbles */
+  .kcard{background:rgba(10,16,30,.65);border:1px solid var(--glass-line);border-radius:14px;padding:13px;margin-top:10px}
+  .kcard .khead{font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;color:var(--faint);margin-bottom:9px}
+  .total{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--ink);letter-spacing:-.01em}
+  .total small{font-size:12px;color:var(--good);margin-left:8px}
+  .pos{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid rgba(120,140,180,.09)}
+  .pos:first-of-type{border-top:none}
+  .coin{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:#fff;flex:none}
+  .pos .pn{font-size:13px;font-weight:600;color:var(--ink)}
+  .pos .pc{font-size:10px;color:var(--faint);display:flex;align-items:center;gap:5px}
+  .chainb{font-family:var(--mono);font-size:8px;letter-spacing:.06em;border:1px solid var(--glass-line);border-radius:4px;padding:1.5px 5px;color:var(--text)}
+  .pos .pv{margin-left:auto;text-align:right}
+  .pos .pv b{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink);display:block}
+  .pos .pv span{font-family:var(--mono);font-size:10px;color:var(--faint)}
+  .pos .pv span.up{color:var(--good)}
+
+  /* venues */
+  .venue{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:10px;margin-top:6px;border:1px solid transparent;font-size:12.5px;color:var(--text)}
+  .venue .vn{font-weight:600;color:var(--ink)}
+  .venue .vr{margin-left:auto;font-family:var(--mono);font-size:12px}
+  .venue.best{background:var(--rift-dim);border-color:rgba(110,139,255,.35)}
+  .venue.best .vr{color:#A8BBFF;font-weight:600}
+  .venue .btag{font-family:var(--mono);font-size:7.5px;letter-spacing:.1em;background:linear-gradient(120deg,#8FA6FF,#5F7BFF);color:#0A1128;border-radius:4px;padding:2px 6px;font-weight:700}
+
+  /* policy checks */
+  .gates{margin-top:10px;display:flex;flex-direction:column;gap:5px}
+  .gate{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);opacity:0;transform:translateX(-6px);transition:all .3s}
+  .gate.show{opacity:1;transform:none}
+  .gate i{width:15px;height:15px;border-radius:50%;background:var(--good-dim);color:var(--good);font-size:9px;font-style:normal;display:flex;align-items:center;justify-content:center;flex:none}
+  .gate.bad i{background:var(--bad-dim);color:var(--bad)}
+  .gatehead{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--lime);margin-top:11px}
+  .gatehead::before{content:'';width:14px;height:1px;background:var(--lime);opacity:.5}
+
+  /* route animation */
+  .route{display:flex;align-items:center;justify-content:space-between;margin:13px 2px 4px;position:relative}
+  .rnode{display:flex;flex-direction:column;align-items:center;gap:6px;z-index:2;min-width:52px}
+  .rnode .rc{width:38px;height:38px;border-radius:50%;background:var(--bg2);border:1px solid var(--glass-line);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:var(--text);transition:all .3s}
+  .rnode.on .rc{border-color:var(--rift);color:#fff;box-shadow:0 0 16px rgba(110,139,255,.5)}
+  .rnode.done .rc{border-color:var(--good);color:var(--good)}
+  .rnode span{font-family:var(--mono);font-size:8px;letter-spacing:.08em;color:var(--faint)}
+  .rline{position:absolute;top:19px;left:44px;right:44px;height:2px;background:rgba(120,140,180,.15);z-index:1;border-radius:2px;overflow:visible}
+  .rfill{height:100%;width:0%;background:linear-gradient(90deg,var(--rift),#A8BBFF);border-radius:2px;transition:width .8s ease;box-shadow:0 0 10px rgba(110,139,255,.6)}
+  .rstep{font-family:var(--mono);font-size:10px;color:var(--text);margin-top:9px;min-height:15px}
+  .rstep.done{color:var(--good)}
+
+  /* receipt */
+  .receipt{font-family:var(--mono);font-size:10.5px;color:var(--text);background:rgba(6,10,20,.8);border:1px solid var(--glass-line);border-radius:11px;padding:11px 13px;margin-top:10px;line-height:1.8;overflow-x:auto;white-space:nowrap}
+  .receipt .h{color:var(--lime)}
+  .receipt .g{color:var(--good)}
+
+  /* rebalance plan */
+  .flowrow{display:flex;align-items:center;gap:10px;margin-top:8px}
+  .vaultbox{flex:1;background:rgba(10,16,30,.65);border:1px solid var(--glass-line);border-radius:12px;padding:10px}
+  .vaultbox .vt{font-size:11.5px;font-weight:600;color:var(--ink)}
+  .vaultbox .vy{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:2px}
+  .vaultbox .va{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink);margin-top:5px}
+  .vaultbox.dst{border-color:rgba(61,220,151,.3)}
+  .vaultbox.dst .vy{color:var(--good)}
+  .flowarr{color:var(--rift);font-size:16px;flex:none}
+  .delta{font-family:var(--mono);font-size:11px;color:var(--good);margin-top:9px}
+
+  /* metric rows */
+  .mrow{display:flex;justify-content:space-between;font-size:12px;color:var(--text);padding:5px 0}
+  .mrow b{font-family:var(--mono);font-weight:550;color:var(--ink)}
+
+  /* confirm hint */
+  .sayconfirm{
+    display:inline-flex;align-items:center;gap:8px;margin-top:11px;font-size:12.5px;color:var(--lime);
+    background:var(--lime-dim);border:1px solid rgba(198,243,46,.25);border-radius:999px;padding:7px 14px;
+  }
+  .sayconfirm .pulse{width:7px;height:7px;border-radius:50%;background:var(--lime);animation:breathe 1.6s infinite}
+
+  /* ---------- voice dock ---------- */
+  .dock{
+    flex:none;padding:10px 18px calc(env(safe-area-inset-bottom, 10px) + 14px);
+    background:linear-gradient(180deg,transparent,rgba(4,7,14,.92) 30%);
+    display:flex;flex-direction:column;align-items:center;gap:10px;
+  }
+  .hints{display:flex;gap:7px;flex-wrap:wrap;justify-content:center}
+  .hint{
+    border:1px solid var(--glass-line);background:var(--glass);backdrop-filter:blur(10px);
+    color:var(--text);border-radius:999px;padding:7px 13px;font-size:11.5px;cursor:pointer;transition:all .15s;
+  }
+  .hint:active{transform:scale(.96);border-color:var(--rift)}
+  .voicebar{display:flex;align-items:center;gap:16px;width:100%;justify-content:center}
+  .transcript{
+    flex:1;min-height:20px;font-size:13px;color:var(--text);text-align:right;font-style:italic;
+    overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+  }
+  .micwrap{position:relative;flex:none}
+  .micring{position:absolute;inset:-9px;border-radius:50%;border:1.5px solid rgba(198,243,46,.35);opacity:0;transform:scale(.8)}
+  .listening .micring{animation:ring 1.6s infinite}
+  @keyframes ring{0%{opacity:.8;transform:scale(.85)}100%{opacity:0;transform:scale(1.45)}}
+  .mic{
+    width:68px;height:68px;border-radius:50%;border:none;cursor:pointer;position:relative;
+    background:linear-gradient(150deg,var(--lime),#9BC91B);color:#1A2405;font-size:26px;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 8px 32px -6px rgba(198,243,46,.45);transition:all .2s;
+  }
+  .listening .mic{background:linear-gradient(150deg,#FF8A8A,#FF6B6B);color:#2A0808;box-shadow:0 8px 32px -6px rgba(255,107,107,.5)}
+  .mic:active{transform:scale(.94)}
+  .wave{display:flex;align-items:center;gap:3px;height:26px;flex:1;justify-content:flex-start;visibility:hidden}
+  .listening .wave{visibility:visible}
+  .wave i{width:3px;border-radius:2px;background:var(--lime);height:6px}
+  .listening .wave i{animation:wv .9s ease-in-out infinite}
+  .wave i:nth-child(2){animation-delay:.1s}.wave i:nth-child(3){animation-delay:.2s}
+  .wave i:nth-child(4){animation-delay:.3s}.wave i:nth-child(5){animation-delay:.4s}
+  .wave i:nth-child(6){animation-delay:.5s}.wave i:nth-child(7){animation-delay:.6s}
+  @keyframes wv{0%,100%{height:5px}50%{height:22px}}
+  .micstat{font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;color:var(--faint)}
+  .listening-label{color:var(--bad)}
+</style>
+</head>
+<body>
+<div class="ambient"></div>
+<div class="app" id="app">
+
+  <header>
+    <div class="logo"><svg viewBox="0 0 2048 575" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="vishwa">
+      <g fill="#F2F5FA">
+      <path transform="translate(327,139)" d="m0 0 28 1 26 4 22 6 21 8 17 8 19 12 13 10 12 11 10 10 10 13 13 23-2 4-16-4-55-17-10-3-4 1 32 19 28 17 18 11 1 1-1 7-10 12-12 16-14 18-12 14-9 10-14 15-22 22-8 7-12 11-11 9-16 13-19 14-33 22-19 11-52 27-3 1h-9l-16-8-15-10-10-8-10-9-14-14-13-17-11-18-3-7 9 2 55 17 22 7 5-1-5-4-25-13-22-12-20-12-20-14-13-11-10-9-13-13-11-14-10-14-9-16-4-11-1-4v-16l4-13 6-10 11-11 15-8 12-4 5-1h14l-6 32h2l2-5 12-18 12-16 12-14 16-16 14-11 10-7 17-10 21-9 19-6 24-5 17-2z"/>
+      <path transform="translate(471,46)" d="m0 0h23l22 3 21 6 19 9 11 8 10 9 9 12 8 15 5 16 2 12v33l-4 24-6 21-7 19-9 20-10 20-13 23-2 5 1 5 7 8 9 9 13 18 10 18 3 10v21l-5 14-9 12-13 9-19 7-13 4h-8l5-26v-4l-17 25-10 13-12 14-11 11-11 9-13 10-20 12-19 9-24 8-26 5-10 1h-58l-11 4-26 12-30 12-31 10-30 7-30 4h-34l-24-4-18-6-17-8-12-8-12-11-8-9-8-14-5-14-2-9v-24l3 1 5 18 7 14 10 13 12 10 14 8 16 7 19 5 14 2h32l21-3 30-7 36-11 26-10 29-14 23-12 24-14 23-14 16-11 16-12 11-9 13-11 12-11 10-9 24-24 7-8 11-12 7-8 12-14 11-12 13-17 10-15 12-21 12-25 9-23 6-19 4-19 2-21-1-22-3-15-5-15-8-14-11-12-10-8-15-8-17-5-31-5-16-1-1-3z"/>
+      <path transform="translate(1428,267)" d="m0 0h53l3 5v118l2 9 6 11 9 8 11 5 9 2 13-1 10-4 5-4h2l2-4 5-9 2-9 1-124 3-3h53l3 3 1 124 3 10 5 8 7 6 9 4 11 2 16-2 10-5 6-5 7-11 2-7 1-124 2-3h54l2 1 1 3v117l-2 18-5 15-6 11-8 10-10 9-14 8-16 6-19 4-11 1h-12l-17-2-21-6-13-7-10-10h-5l-10 10-14 8-16 5-17 2h-20l-19-3-18-6-16-9-13-11-8-10-7-14-4-15-1-13v-117z"/>
+      <path transform="translate(1158,173)" d="m0 0h50l4 3v105l29-12 15-4 12-2 11-1h15l21 3 21 7 16 9 11 9 7 8 6 10 5 13 2 16v125l-4 4h-50l-4-3-1-115-2-10-6-12-9-7-13-6-13-3h-23l-15 4-15 8-8 7-6 12-1 6-1 116-4 3h-50l-4-3v-287z"/>
+      <path transform="translate(1904,261)" d="m0 0h31l24 4 18 6 19 10 12 9 7 6 9 11 9 14 6 16 3 12 1 8v106l-3 3h-51l-3-2-1-3v-60l-1-40-4-17-6-11-7-8-10-7-12-6-11-3-7-1h-15l-17 3-16 6-10 6-9 8-8 14-3 10v19l4 12 7 11 7 7 14 9 15 6 15 3h21l16-3 11-4h3v45l-3 3-14 4-22 3h-23l-20-3-16-5-12-5-17-9-12-9-10-9-9-11-8-14-5-15-2-10v-24l4-18 7-16 7-11 11-13 12-10 14-9 17-8 19-6z"/>
+      <path transform="translate(652,267)" d="m0 0h55l4 4 27 121 4 16 6 9v2l12 6 10 1 10-3 9-8 5-10 9-37 22-97 4-4h55v7l-23 100-9 38-6 15-7 11-11 11-15 10-11 5-13 4-13 2h-13l-19-3-15-5-15-8-11-9-8-10-9-17-7-26-17-72-11-48z"/>
+      <path transform="translate(1062,263)" d="m0 0h23l16 4 17 7 3 3 1 5-11 33-2 2-9-2-14-5-4-1h-9l-8 3-5 5-3 6v6l7 12 19 28 10 13 9 11 5 10 2 9v10l-3 12-5 10-9 10-11 7-16 7-16 3h-20l-18-4-16-8-4-5 1-7 10-29 2-1 27 7h12l8-4 3-5 1-4v-7l-4-10-14-21-14-23-9-15-1-2v-22l1-20 5-10 10-7 16-7z"/>
+      <path transform="translate(904,267)" d="m0 0h53l2 2v194l-4 3h-50l-4-4v-191z"/>
+      <path transform="translate(402,75)" d="m0 0h24l21 3 18 5 16 8 12 9 9 10 6 10 5 11 4 17v28h-2l-8-19-7-12-11-11-13-8-16-6-16-3-11-1h-22l-24 3-22 5-14 4-6 1-36 1-23 3-22 5-27 9-21 10-16 10-16 12-12 11-12 12-8 10-6 3-8-1 3-5 9-9 11-9 10-9 11-9 16-12 20-13 21-13 24-14 27-14 24-10 36-12 23-6 19-3z"/>
+      <path transform="translate(923,182)" d="m0 0h13l13 4 9 7 5 8 2 8-1 9-4 8-7 6-8 4-15 4-14-3-10-6-7-7-3-7v-11l4-10 5-6 10-6z"/>
+      <path transform="translate(27,450)" d="m0 0h37l3 4 5 14 6 10 9 10 11 8 12 6 10 4 1 2-5 1h-12l-17-3-15-5-15-8-13-10-8-9-7-14z"/>
+      <path transform="translate(251,3)" d="m0 0h17l3 4v13l-4 4h-15l-4-4v-13z"/>
+      <path transform="translate(102,86)" d="m0 0h18l2 2v17l-3 2h-16l-3-2v-17z"/>
+      <path transform="translate(286,73)" d="m0 0 10 1 3 4v8l-3 5h-14l-3-4v-9l3-4z"/>
+      <path transform="translate(178,135)" d="m0 0h10l4 3v12l-2 3-12 1-4-3-1-4v-7l2-4z"/>
+      <path transform="translate(170,81)" d="m0 0h7l4 4v7l-4 4h-8l-3-3v-9z"/>
+      <path transform="translate(321,30)" d="m0 0h9l2 2v10l-2 2h-11l-2-2v-9z"/>
+      </g>
+      <path fill="#070B14" transform="translate(314,182)" d="m0 0h1l5 35 4 4 37 5v2l-10 2-28 4-3 4-5 30-1 4h-2l-5-34-3-4-36-5-3-2 7-2 28-3 6-3 3-16 4-19z"/>
+      <path fill="#070B14" transform="translate(217,262)" d="m0 0h1l1 10 3 5 4 2 10 1-1 3-12 2-3 3-2 12-2 1-3-14-3-2-12-2 15-15z"/>
+    </svg></div>
+    <div class="xrift"><span class="x">×</span><span class="rift">RIFT</span></div>
+    <div class="spacer"></div>
+    <div class="live"><i></i>MAINNET</div>
+    <button class="mute" id="mutebtn" onclick="toggleMute()">🔊</button>
+  </header>
+
+  <div class="feed" id="feed"></div>
+
+  <div class="dock" id="dock">
+    <div class="hints">
+      <button class="hint" onclick="handleUtterance('show my positions')">Show my positions</button>
+      <button class="hint" onclick="handleUtterance('swap 5000 usdc to eth')">Swap 5,000 USDC → ETH</button>
+      <button class="hint" onclick="handleUtterance('rebalance my vaults')">Rebalance vaults</button>
+    </div>
+    <div class="voicebar">
+      <div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="transcript" id="transcript"></div>
+      <div class="micwrap">
+        <div class="micring"></div>
+        <button class="mic" id="mic" onclick="toggleListen()">🎙</button>
+      </div>
+    </div>
+    <div class="micstat" id="micstat">TAP TO SPEAK</div>
+  </div>
+</div>
+
+<script>
+/* ================= state & data ================= */
+const P = {
+  positions:[
+    {sym:'BTC', name:'Bitcoin', chain:'BITCOIN', color:'#F7931A', bal:'0.8500', usd:81600, chg:'+2.1%'},
+    {sym:'ETH', name:'Ethereum', chain:'ETHEREUM', color:'#627EEA', bal:'8.20', usd:23780, chg:'+1.4%'},
+    {sym:'USDC', name:'USD Coin', chain:'BASE', color:'#2775CA', bal:'12,400', usd:12400, chg:''},
+    {sym:'USDT', name:'Tether', chain:'ARBITRUM', color:'#26A17B', bal:'6,000', usd:6000, chg:''},
+  ],
+  vaults:[
+    {id:'btc', name:'BTC Yield Vault', chain:'BITCOIN', apy:3.1, usd:38200},
+    {id:'stable', name:'Stable Yield Vault', chain:'BASE', apy:7.4, usd:24600},
+  ],
+  ethPx: 2900,
+};
+const total = () => P.positions.reduce((s,p)=>s+p.usd,0) + P.vaults.reduce((s,v)=>s+v.usd,0);
+const fmt = n => '$' + Math.round(n).toLocaleString('en-US');
+let pending = null;   // {type:'swap'|'rebalance', ...}
+let muted = false;
+
+const feed = document.getElementById('feed');
+const $ = id => document.getElementById(id);
+function scrollFeed(){ feed.scrollTop = feed.scrollHeight; }
+function hash(){ return Array.from({length:8},()=>'0123456789abcdef'[Math.floor(Math.random()*16)]).join(''); }
+function vibrate(ms){ try{ navigator.vibrate && navigator.vibrate(ms); }catch{} }
+
+/* ================= speech ================= */
+function speak(text){
+  if(muted || !window.speechSynthesis) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 1.04; u.pitch = 1.0;
+  const vs = speechSynthesis.getVoices();
+  u.voice = vs.find(v=>/Samantha|Google US English|en-US/i.test(v.name+v.lang)) || null;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+function toggleMute(){
+  muted = !muted;
+  $('mutebtn').textContent = muted ? '🔇' : '🔊';
+  if(muted) speechSynthesis?.cancel();
+}
+
+let rec = null, listening = false;
+function initRec(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR) return null;
+  const r = new SR();
+  r.lang = 'en-US'; r.interimResults = true; r.continuous = false;
+  r.onresult = e => {
+    let interim='', final='';
+    for(const res of e.results){ if(res.isFinal) final += res[0].transcript; else interim += res[0].transcript; }
+    $('transcript').textContent = final || interim;
+    if(final){ stopListen(); handleUtterance(final.trim()); }
+  };
+  r.onend = () => { if(listening) stopListen(); };
+  r.onerror = () => stopListen();
+  return r;
+}
+function toggleListen(){ listening ? stopListen() : startListen(); }
+function startListen(){
+  if(!rec) rec = initRec();
+  if(!rec){ $('micstat').textContent='VOICE UNAVAILABLE — USE THE CHIPS ABOVE'; return; }
+  speechSynthesis?.cancel();
+  listening = true;
+  $('dock').classList.add('listening');
+  $('micstat').textContent='LISTENING…'; $('micstat').classList.add('listening-label');
+  $('transcript').textContent='';
+  vibrate(12);
+  try{ rec.start(); }catch{}
+}
+function stopListen(){
+  listening = false;
+  $('dock').classList.remove('listening');
+  $('micstat').textContent='TAP TO SPEAK'; $('micstat').classList.remove('listening-label');
+  try{ rec && rec.stop(); }catch{}
+}
+
+/* ================= feed helpers ================= */
+function userSay(text){
+  const m = document.createElement('div');
+  m.className='msg user';
+  m.innerHTML = `<div class="who">YOU · VOICE</div><div class="bubble">${text}</div>`;
+  feed.appendChild(m); scrollFeed();
+}
+function agentSay(html, spoken){
+  const m = document.createElement('div');
+  m.className='msg agent';
+  m.innerHTML = `<div class="who">TREASURY AGENT</div><div class="bubble">${html}</div>`;
+  feed.appendChild(m); scrollFeed();
+  if(spoken) speak(spoken);
+  return m;
+}
+function revealGates(scope){
+  document.querySelectorAll(scope+' .gate').forEach((g,i)=>setTimeout(()=>{g.classList.add('show');vibrate(8)}, 250+i*380));
+}
+
+/* ================= intents ================= */
+function parseAmount(t){
+  t = t.replace(/,/g,'');
+  let m = t.match(/(\d+(?:\.\d+)?)\s*k\b/i); if(m) return Math.round(parseFloat(m[1])*1000);
+  m = t.match(/(\d+(?:\.\d+)?)\s*thousand/i); if(m) return Math.round(parseFloat(m[1])*1000);
+  m = t.match(/(\d+(?:\.\d+)?)/); if(m) return Math.round(parseFloat(m[1]));
+  const words = {'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8,'nine':9,'ten':10};
+  for(const [w,n] of Object.entries(words)){ if(new RegExp('\\b'+w+'\\s+thousand','i').test(t)) return n*1000; }
+  return null;
+}
+
+function handleUtterance(text){
+  if(!text) return;
+  userSay(text);
+  const t = text.toLowerCase();
+
+  if(/\b(confirm|yes|go ahead|do it|execute|approve)\b/.test(t)) return doConfirm();
+  if(/\b(cancel|no|stop|abort)\b/.test(t)) return doCancel();
+  if(/rebalance|re-balance|shift|vault/.test(t)) return proposeRebalance();
+  if(/position|portfolio|\bbalance\b|holding|treasury/.test(t)) return showPositions();
+  if(/swap|convert|buy|trade|exchange/.test(t)) return proposeSwap(t);
+  if(/mandate|policy|limit/.test(t)) return showMandate();
+
+  agentSay(`I can <b>show your positions</b>, <b>swap across chains</b> at the best routed rate, or <b>rebalance your vaults</b> — all by voice. Policy checks run before anything moves.`,
+    `I can show your positions, swap across chains, or rebalance your vaults. Just say it.`);
+}
+
+/* ---- positions ---- */
+function showPositions(){
+  setTimeout(()=>{
+    const rows = P.positions.map(p=>`
+      <div class="pos">
+        <span class="coin" style="background:${p.color}">${p.sym[0]}</span>
+        <div><div class="pn">${p.sym}</div><div class="pc">${p.name} <span class="chainb">${p.chain}</span></div></div>
+        <div class="pv"><b>${fmt(p.usd)}</b><span>${p.bal} ${p.sym} ${p.chg?`· <span class="up">${p.chg}</span>`:''}</span></div>
+      </div>`).join('');
+    const vaults = P.vaults.map(v=>`
+      <div class="pos">
+        <span class="coin" style="background:linear-gradient(140deg,#5F7BFF,#8FA6FF)">V</span>
+        <div><div class="pn">${v.name}</div><div class="pc">via Rift <span class="chainb">${v.chain}</span></div></div>
+        <div class="pv"><b>${fmt(v.usd)}</b><span class="up">${v.apy}% APY</span></div>
+      </div>`).join('');
+    agentSay(`Here's your treasury across <b>4 chains</b>:
+      <div class="kcard">
+        <div class="khead">TOTAL VALUE</div>
+        <div class="total">${fmt(total())}<small>+1.8% · 24h</small></div>
+        ${rows}
+        <div class="khead" style="margin-top:12px">VAULT POSITIONS · VIA RIFT</div>
+        ${vaults}
+      </div>`,
+      `Your treasury is worth ${Math.round(total()/1000)} thousand dollars across four chains, including two vault positions. The stable yield vault is earning seven point four percent.`);
+  }, 350);
+}
+
+/* ---- swap ---- */
+function proposeSwap(t){
+  const amt = parseAmount(t) || 5000;
+  const out = (amt / P.ethPx);
+  pending = {type:'swap', amt, out};
+  setTimeout(()=>{
+    agentSay(`Routing <b>${fmt(amt)} USDC → ETH</b> through Rift across every venue:
+      <div class="kcard">
+        <div class="khead">RIFT ROUTER · BEST EXECUTION</div>
+        <div class="venue best"><span class="vn">Rift optimal route</span><span class="btag">BEST RATE</span><span class="vr">${out.toFixed(4)} ETH</span></div>
+        <div class="venue"><span class="vn">Uniswap v3 · direct</span><span class="vr">${(out*0.9975).toFixed(4)} ETH</span></div>
+        <div class="venue"><span class="vn">Curve · tri-pool</span><span class="vr">${(out*0.9968).toFixed(4)} ETH</span></div>
+        <div class="mrow" style="margin-top:9px"><span>Route</span><b>USDC · Base → ETH · Ethereum</b></div>
+        <div class="mrow"><span>Fee</span><b>0.08% · bridging included</b></div>
+        <div class="mrow"><span>Time to settle</span><b>~40 seconds</b></div>
+        <div class="gatehead">VISHWA POLICY</div>
+        <div class="gates">
+          <div class="gate"><i>✓</i>Venue whitelisted · Rift router verified</div>
+          <div class="gate"><i>✓</i>Slippage within mandate — max 0.5%</div>
+          <div class="gate"><i>✓</i>Per-trade cap — ${fmt(amt)} ≤ $25,000</div>
+        </div>
+        <div class="sayconfirm"><span class="pulse"></span>Say “confirm” to execute</div>
+      </div>`,
+      `Best route found. ${amt.toLocaleString()} U S D C gets you ${out.toFixed(3)} ether, beating the next venue. Three policy checks passed. Say confirm to execute.`);
+    revealGates('.msg:last-child');
+  }, 400);
+}
+
+/* ---- rebalance ---- */
+function proposeRebalance(){
+  const from = P.vaults[0], to = P.vaults[1];
+  const amt = Math.round(from.usd * 0.2);
+  const delta = Math.round(amt * (to.apy - from.apy) / 100);
+  pending = {type:'rebalance', amt, delta};
+  setTimeout(()=>{
+    agentSay(`Your BTC vault is <b>yield-lagging</b>. Proposal — shift <b>20%</b> into the stable vault:
+      <div class="kcard">
+        <div class="khead">REBALANCE · CROSS-CHAIN VIA RIFT</div>
+        <div class="flowrow">
+          <div class="vaultbox"><div class="vt">${from.name}</div><div class="vy">${from.apy}% APY · ${from.chain}</div><div class="va">${fmt(from.usd)} → ${fmt(from.usd-amt)}</div></div>
+          <span class="flowarr">⟶</span>
+          <div class="vaultbox dst"><div class="vt">${to.name}</div><div class="vy">${to.apy}% APY · ${to.chain}</div><div class="va">${fmt(to.usd)} → ${fmt(to.usd+amt)}</div></div>
+        </div>
+        <div class="mrow" style="margin-top:10px"><span>Moving</span><b>${fmt(amt)} · one transaction</b></div>
+        <div class="mrow"><span>Path</span><b>Bitcoin → Rift → Base, receipt tokens auto-swapped</b></div>
+        <div class="delta">Projected yield +${fmt(delta)}/yr · +${(to.apy-from.apy).toFixed(1)}pp on moved capital</div>
+        <div class="gatehead">VISHWA POLICY</div>
+        <div class="gates">
+          <div class="gate"><i>✓</i>Destination vault on approved list</div>
+          <div class="gate"><i>✓</i>Single-vault concentration ≤ 40% after move</div>
+          <div class="gate"><i>✓</i>Unwind window — no lock-up violated</div>
+          <div class="gate"><i>✓</i>Mandate v1.0 integrity verified</div>
+        </div>
+        <div class="sayconfirm"><span class="pulse"></span>Say “confirm” to rebalance</div>
+      </div>`,
+      `Your BTC vault is earning three point one percent while the stable vault pays seven point four. Moving twenty percent, about ${Math.round(amt/100)/10} thousand dollars, adds ${delta} dollars a year. Four policy checks passed. Say confirm to rebalance.`);
+    revealGates('.msg:last-child');
+  }, 400);
+}
+
+/* ---- mandate ---- */
+function showMandate(){
+  agentSay(`Mandate v1.0: per-trade cap <b>$25,000</b> · slippage ≤ <b>0.5%</b> · single-vault concentration ≤ <b>40%</b> · venue whitelist enforced · kill switch armed. Every action is hash-chained and receipted.`,
+    `Per trade cap twenty five thousand, max slippage half a percent, vault concentration capped at forty percent. Kill switch armed.`);
+}
+
+/* ---- confirm / execute ---- */
+function doCancel(){
+  if(!pending){ agentSay(`Nothing pending to cancel.`, `Nothing pending.`); return; }
+  pending = null;
+  agentSay(`Cancelled — nothing moved. The denial is receipted.`, `Cancelled. Nothing moved.`);
+}
+function doConfirm(){
+  if(!pending){ agentSay(`Nothing pending — ask me to <b>swap</b> or <b>rebalance</b> first.`, `Nothing pending yet.`); return; }
+  const job = pending; pending = null;
+  vibrate([15,40,15]);
+  if(job.type==='swap') return executeRoute(job,
+    [{c:'U', n:'USDC · BASE'},{c:'R', n:'RIFT ROUTER'},{c:'E', n:'ETH · MAINNET'}],
+    ['Route locked — best rate frozen','Bridging Base → Ethereum','Settled — ETH delivered'],
+    `Subscribe ${fmt(job.amt)} → ${job.out.toFixed(4)} ETH @ $${P.ethPx.toLocaleString()}`,
+    ()=>{ P.positions[2].usd-=job.amt; P.positions[2].bal=(P.positions[2].usd).toLocaleString('en-US'); P.positions[1].usd+=job.amt; P.positions[1].bal=(P.positions[1].usd/P.ethPx).toFixed(2); },
+    `Executed. ${job.out.toFixed(3)} ether settled to your Ethereum wallet. Receipt is on the chain ledger.`);
+  if(job.type==='rebalance') return executeRoute(job,
+    [{c:'B', n:'BTC VAULT'},{c:'R', n:'RIFT'},{c:'S', n:'STABLE VAULT'}],
+    ['Unwinding 20% of BTC vault','Routing Bitcoin → Base via Rift','Deposited — receipt tokens minted'],
+    `Rebalance ${fmt(job.amt)} · BTC vault → Stable vault · +${fmt(job.delta)}/yr`,
+    ()=>{ P.vaults[0].usd-=job.amt; P.vaults[1].usd+=job.amt; },
+    `Rebalanced. ${Math.round(job.amt/100)/10} thousand moved to the stable vault. You're now earning an extra ${job.delta} dollars a year.`);
+}
+function executeRoute(job, nodes, steps, receiptLine, apply, spokenDone){
+  const id = 'rt'+Date.now();
+  const m = agentSay(`Executing —
+    <div class="kcard" id="${id}">
+      <div class="khead">EXECUTION · RIFT ORCHESTRATION</div>
+      <div class="route">
+        ${nodes.map((n,i)=>`<div class="rnode" id="${id}-n${i}"><div class="rc">${n.c}</div><span>${n.n}</span></div>`).join('<div style="flex:1"></div>')}
+        <div class="rline"><div class="rfill" id="${id}-fill"></div></div>
+      </div>
+      <div class="rstep" id="${id}-step">initiating…</div>
+    </div>`, `Executing.`);
+  steps.forEach((s,i)=>{
+    setTimeout(()=>{
+      $(id+'-step').textContent = s;
+      $(id+'-fill').style.width = ((i+1)/steps.length*100)+'%';
+      document.getElementById(`${id}-n${i}`)?.classList.add('on');
+      if(i>0) document.getElementById(`${id}-n${i-1}`)?.classList.replace('on','done');
+      vibrate(10);
+      scrollFeed();
+      if(i===steps.length-1){
+        setTimeout(()=>{
+          document.getElementById(`${id}-n${i}`)?.classList.replace('on','done');
+          $(id+'-step').textContent = 'finalized ✓'; $(id+'-step').classList.add('done');
+          apply();
+          const sig = hash()+hash();
+          m.querySelector('.bubble').insertAdjacentHTML('beforeend',
+            `<div class="receipt"><span class="g">✓</span> ${receiptLine}
+<span class="g">✓</span> policy re-checked at execution · receipt <span class="h">${hash()}</span> · hash-chained
+<span class="g">✓</span> tx <span class="h">0x${sig.slice(0,20)}…</span> · finalized</div>`);
+          scrollFeed();
+          speak(spokenDone);
+        }, 700);
+      }
+    }, 900 + i*1400);
+  });
+}
+
+/* ================= boot ================= */
+setTimeout(()=>{
+  agentSay(`Hey. I'm your <b>voice treasury agent</b> — running on Vishwa policy rails, executing cross-chain through <b>Rift</b>. Try: <b>“show my positions”</b>.`,
+    `Hey, I'm your voice treasury agent, running on Vishwa policy rails and executing cross chain through Rift. Try, show my positions.`);
+}, 700);
+if(window.speechSynthesis) speechSynthesis.getVoices();
+</script>
+</body>
+</html>
