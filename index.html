@@ -296,20 +296,39 @@ function toggleMute(){
   if(muted) speechSynthesis?.cancel();
 }
 
-let rec = null, listening = false;
+let rec = null, listening = false, lastHeard = '', dispatched = false;
 function initRec(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR) return null;
   const r = new SR();
-  r.lang = 'en-US'; r.interimResults = true; r.continuous = false;
+  r.lang = 'en-US'; r.interimResults = true; r.continuous = false; r.maxAlternatives = 1;
   r.onresult = e => {
     let interim='', final='';
-    for(const res of e.results){ if(res.isFinal) final += res[0].transcript; else interim += res[0].transcript; }
-    $('transcript').textContent = final || interim;
-    if(final){ stopListen(); handleUtterance(final.trim()); }
+    for(let i=0;i<e.results.length;i++){
+      const t = e.results[i][0].transcript;
+      if(e.results[i].isFinal) final += t; else interim += t;
+    }
+    lastHeard = (final || interim).trim();
+    $('transcript').textContent = lastHeard;
+    // Some engines (iOS Safari) rarely flag results as final — the onend
+    // fallback below dispatches lastHeard in that case.
+    if(final && !dispatched){
+      dispatched = true;
+      stopListen();
+      handleUtterance(final.trim());
+    }
   };
-  r.onend = () => { if(listening) stopListen(); };
-  r.onerror = () => stopListen();
+  r.onend = () => {
+    stopListen();
+    if(!dispatched && lastHeard){
+      dispatched = true;
+      handleUtterance(lastHeard);
+    }
+  };
+  r.onerror = (e) => {
+    stopListen();
+    if(e.error==='not-allowed') $('micstat').textContent='MIC PERMISSION DENIED — ALLOW IN SETTINGS';
+  };
   return r;
 }
 function toggleListen(){ listening ? stopListen() : startListen(); }
@@ -318,11 +337,12 @@ function startListen(){
   if(!rec){ $('micstat').textContent='VOICE UNAVAILABLE — USE THE CHIPS ABOVE'; return; }
   speechSynthesis?.cancel();
   listening = true;
+  lastHeard = ''; dispatched = false;
   $('dock').classList.add('listening');
   $('micstat').textContent='LISTENING…'; $('micstat').classList.add('listening-label');
   $('transcript').textContent='';
   vibrate(12);
-  try{ rec.start(); }catch{}
+  try{ rec.start(); }catch{ try{ rec.stop(); setTimeout(()=>rec.start(),150); }catch{} }
 }
 function stopListen(){
   listening = false;
