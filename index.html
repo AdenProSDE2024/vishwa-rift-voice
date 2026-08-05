@@ -229,7 +229,17 @@
 
 <script>
 /* ================= state ================= */
-const BTC = 96000, ETH = 2900;
+let BTC = 96000, ETH = 2900;  // fallback values — refreshed with live spot prices below
+(async () => {
+  try{
+    const r = await fetch('https://api.coinbase.com/v2/prices/BTC-USD/spot', {signal: AbortSignal.timeout(4000)});
+    const b = (await r.json())?.data?.amount;
+    if(+b > 0) BTC = Math.round(+b);
+    const r2 = await fetch('https://api.coinbase.com/v2/prices/ETH-USD/spot', {signal: AbortSignal.timeout(4000)});
+    const e = (await r2.json())?.data?.amount;
+    if(+e > 0) ETH = Math.round(+e);
+  }catch(_){ /* offline or blocked — keep fallbacks, demo still runs */ }
+})();
 const S = {
   wallet: null,          // address once created
   btc: 0, usdc: 0, vault: 0,
