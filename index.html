@@ -473,16 +473,17 @@ function quote(asset, usd){
 /* ---- act 2: desk-scale order ---- */
 function deskOrder(t){
   if(!S.wallet){ S.want={asset:'BTC',amount:null}; return offerWallet('BTC'); }
-  const amt = amountOf(t) || 2e6;
+  const amt = amountOf(t) || 5e5;
   const usdc = amt*0.9989;
+  const spokenAmt = amt >= 1e6 ? `${Math.round(amt/1e5)/10} million` : `${Math.round(amt/1e3)} thousand`;
   S.pending = {kind:'desk', amt, usdc};
   setTimeout(()=>{
     agent(`Desk order — <b>${fmt(amt)} BTC → USDC on Base</b>. Pulling live depth from every venue at that size:
       <div class="card">
         <div class="khead">RFQ · SIZE-AWARE ROUTING</div>
         <div class="v best"><span class="vn">Rift split route</span><span class="btag">BEST</span><span class="vr">${fmt(usdc)}<div class="vd">0.11% slippage</div></span></div>
-        <div class="v"><span class="vn">Venue A<div class="vd">depth $1.4M</div></span><span class="vr">${fmt(amt*0.9963)}<div class="vd">0.37%</div></span></div>
-        <div class="v"><span class="vn">Venue B<div class="vd">depth $900K</div></span><span class="vr">${fmt(amt*0.9951)}<div class="vd">0.49%</div></span></div>
+        <div class="v"><span class="vn">Venue A<div class="vd">depth ${fmt(amt*0.7)}</div></span><span class="vr">${fmt(amt*0.9963)}<div class="vd">0.37%</div></span></div>
+        <div class="v"><span class="vn">Venue B<div class="vd">depth ${fmt(amt*0.45)}</div></span><span class="vr">${fmt(amt*0.9951)}<div class="vd">0.49%</div></span></div>
         <div class="v"><span class="vn">OTC counterparty<div class="vd">firm quote, 60s</div></span><span class="vr">${fmt(amt*0.9975)}<div class="vd">0.25%</div></span></div>
         <div class="split">SPLIT · 55% Venue A · 30% Venue B · 15% OTC — one signature, bridged to Base</div>
         <div class="row" style="margin-top:9px"><span>You keep vs. best single venue</span><b class="win">+${fmt(usdc-amt*0.9975)}</b></div>
@@ -495,7 +496,7 @@ function deskOrder(t){
         </div>
         <div class="say"><span class="p"></span>Say “confirm” to route for approval</div>
       </div>`,
-      `Two million in bitcoin to U S D C on Base. Best fill is a split route across three venues — that keeps about ${Math.round((usdc-amt*0.9975)/1000)} thousand dollars more than the best single venue. It's above your solo limit, so it needs a second approver. Say confirm.`);
+      `${spokenAmt} in bitcoin to U S D C on Base. Best fill is a split route across three venues — that keeps about ${Math.round((usdc-amt*0.9975)/100)/10} thousand dollars more than the best single venue. It's above your solo limit, so it needs a second approver. Say confirm.`);
     reveal('.msg:last-child .v','show',280,200);
     reveal('.msg:last-child .g','show',360,1300);
     S.stage='desk';
@@ -574,7 +575,7 @@ function affirm(t){
       m => {
         m.querySelector('.bub').insertAdjacentHTML('beforeend',
           `<div class="own"><div class="ob">You own ${job.units.toFixed(job.asset==='BTC'?5:4)} ${job.asset}</div><div class="os">≈ ${fmt(job.usd)} · held in your own wallet</div></div>`);
-        hints(['What do I own?','Put my cash to work','Sell two million of bitcoin']);
+        hints(['What do I own?','Put my cash to work','Sell $500K of bitcoin']);
       },
       `Done. You own ${job.units.toFixed(5)} bitcoin, held in your own wallet. That took about thirty seconds and you never touched a keyboard.`);
   }
@@ -583,13 +584,13 @@ function affirm(t){
       [{c:'B',n:'BTC'},{c:'R',n:'RIFT SPLIT'},{c:'U',n:'USDC · BASE'}],
       ['Second approver notified — risk officer','Approved · splitting across 3 venues','Bridged and settled on Base'],
       `Sell ${fmt(job.amt)} BTC → ${fmt(job.usdc)} USDC · split 55/30/15 · dual-approved`,
-      () => { S.usdc += job.usdc; S.stage='owns'; },
+      () => { S.usdc += job.usdc; S.btc = Math.max(0, S.btc - job.amt/BTC); S.stage='owns'; },
       m => {
         m.querySelector('.bub').insertAdjacentHTML('beforeend',
           `<div class="own"><div class="ob">${fmt(job.usdc)} USDC on Base</div><div class="os">Dual-approved · 3 venues · one signature</div></div>`);
         hints(['Put my cash to work','What do I own?']);
       },
-      `Filled. ${Math.round(job.usdc/1e6*100)/100} million U S D C settled on Base, split across three venues, dual approved, one signature. Receipt is signed.`);
+      `Filled. ${job.usdc >= 1e6 ? Math.round(job.usdc/1e4)/100 + ' million' : Math.round(job.usdc/1e3) + ' thousand'} U S D C settled on Base, split across three venues, dual approved, one signature. Receipt is signed.`);
   }
   if(job.kind==='vault'){
     return execute(
@@ -641,8 +642,21 @@ function execute(nodes, steps, receiptLine, apply, after, spokenDone){
 }
 
 /* ================= boot ================= */
-hints(['Buy some bitcoin','I have cash sitting idle']);
-setTimeout(()=>{ speak(`What do you want to own? Just say it — no account, no forms, no keyboard.`); }, 900);
+const DESK = new URLSearchParams(location.search).get('mode') === 'desk' || location.hash === '#desk';
+if(DESK){
+  // Warm state for desk / OTC audience: wallet live, positions loaded, straight to an order.
+  S.wallet = '0x' + hx(4) + '…' + hx(4);
+  S.btc = 9.4; S.usdc = 180000; S.stage = 'owns';
+  $('wpill').textContent = S.wallet; $('wpill').classList.add('show');
+  $('hdr').classList.add('show');
+  document.querySelector('.zeroq').innerHTML = 'Desk is live.<br>Say an order.';
+  document.querySelector('.zerosub').textContent = 'Positions loaded · limits armed · second approver on call — no tickets, no keyboard.';
+  hints(['Sell $500K of bitcoin','What do I own?','What are my limits?']);
+  setTimeout(()=>{ speak(`Desk is live. Positions and limits are loaded — give me an order.`); }, 900);
+}else{
+  hints(['Buy some bitcoin','I have cash sitting idle']);
+  setTimeout(()=>{ speak(`What do you want to own? Just say it — no account, no forms, no keyboard.`); }, 900);
+}
 if(window.speechSynthesis) speechSynthesis.getVoices();
 </script>
 </body>
