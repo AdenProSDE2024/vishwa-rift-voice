@@ -153,6 +153,40 @@
   .vbar{display:flex;align-items:center;gap:14px;width:100%}
   .tr{flex:1;min-height:19px;font-size:13.5px;color:var(--text);text-align:right;font-style:italic;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
   .mw{position:relative;flex:none}
+
+  /* order ticket — structured parse of the spoken order (accuracy proof) */
+  .ticket{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+  .tk{background:rgba(4,7,15,.75);border:1px solid var(--line);border-radius:9px;padding:7px 9px}
+  .tk span{display:block;font-family:var(--mono);font-size:7px;letter-spacing:.14em;color:var(--faint)}
+  .tk b{display:block;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink);margin-top:3px;white-space:nowrap}
+  .tk.hot b{color:var(--lime)}
+
+  /* desktop — institutional screen-recording layout */
+  @media(min-width:900px){
+    .app{max-width:660px}
+    .zeroq{font-size:34px}
+    .zerosub{font-size:15.5px;max-width:360px}
+    .msg.user .bub{font-size:17px;padding:13px 18px}
+    .msg.agent .bub{font-size:16px;padding:16px 19px}
+    .bub .big{font-size:36px}
+    .bub .sub{font-size:14px}
+    .card{padding:18px;border-radius:17px}
+    .khead{font-size:9px}
+    .row{font-size:14px}
+    .v{font-size:14px;padding:10px 12px}
+    .v .vr{font-size:13.5px}
+    .v .vd{font-size:10.5px}
+    .g{font-size:13.5px}
+    .hint{font-size:13px;padding:8px 15px}
+    .tr{font-size:16px}
+    .own .ob{font-size:30px}
+    .receipt{font-size:11px}
+    .say{font-size:14px}
+    .who{font-size:8.5px}
+    .tk span{font-size:8px}
+    .tk b{font-size:14px}
+    .mstat{font-size:9px}
+  }
   .mring{position:absolute;inset:-9px;border-radius:50%;border:1.5px solid rgba(198,243,46,.35);opacity:0}
   .listening .mring{animation:ring 1.5s infinite}
   @keyframes ring{0%{opacity:.85;transform:scale(.85)}100%{opacity:0;transform:scale(1.45)}}
@@ -257,12 +291,18 @@ const vib = p => { try{ navigator.vibrate && navigator.vibrate(p); }catch{} };
 const scroll = () => { feed.scrollTop = feed.scrollHeight; };
 
 /* ================= voice out ================= */
+function pickVoice(){
+  const vs = speechSynthesis.getVoices().filter(v=>/^en[-_]/i.test(v.lang));
+  // Premium/enhanced neural voices sound far less robotic than the defaults.
+  const pref = [/ava.*premium/i, /premium/i, /enhanced/i, /natural|neural/i, /siri/i, /google us english/i, /samantha/i];
+  for(const p of pref){ const v = vs.find(v=>p.test(v.name)); if(v) return v; }
+  return vs.find(v=>/en-US/i.test(v.lang)) || vs[0] || null;
+}
 function speak(t){
   if(S.muted || !window.speechSynthesis) return;
   const u = new SpeechSynthesisUtterance(t);
-  u.rate = 1.05;
-  const vs = speechSynthesis.getVoices();
-  u.voice = vs.find(v=>/Samantha|Google US English/i.test(v.name)) || vs.find(v=>/en-US/i.test(v.lang)) || null;
+  u.rate = 1.0; u.pitch = 1.0;
+  u.voice = pickVoice();
   speechSynthesis.cancel(); speechSynthesis.speak(u);
 }
 function toggleMute(){ S.muted=!S.muted; $('mutebtn').textContent = S.muted?'🔇':'🔊'; if(S.muted) speechSynthesis?.cancel(); }
@@ -480,6 +520,13 @@ function deskOrder(t){
   setTimeout(()=>{
     agent(`Desk order — <b>${fmt(amt)} BTC → USDC on Base</b>. Pulling live depth from every venue at that size:
       <div class="card">
+        <div class="khead">ORDER TICKET · PARSED FROM VOICE</div>
+        <div class="ticket">
+          <div class="tk"><span>SIDE</span><b>SELL</b></div>
+          <div class="tk"><span>ASSET</span><b>BTC</b></div>
+          <div class="tk hot"><span>NOTIONAL</span><b>${fmt(amt)}</b></div>
+          <div class="tk"><span>SETTLE</span><b>USDC·BASE</b></div>
+        </div>
         <div class="khead">RFQ · SIZE-AWARE ROUTING</div>
         <div class="v best"><span class="vn">Rift split route</span><span class="btag">BEST</span><span class="vr">${fmt(usdc)}<div class="vd">0.11% slippage</div></span></div>
         <div class="v"><span class="vn">Venue A<div class="vd">depth ${fmt(amt*0.7)}</div></span><span class="vr">${fmt(amt*0.9963)}<div class="vd">0.37%</div></span></div>
@@ -658,6 +705,13 @@ if(DESK){
   setTimeout(()=>{ speak(`What do you want to own? Just say it — no account, no forms, no keyboard.`); }, 900);
 }
 if(window.speechSynthesis) speechSynthesis.getVoices();
+// Desktop: spacebar toggles the mic — presenter can stay out of frame.
+window.addEventListener('keydown', e => {
+  if(e.code !== 'Space' || e.repeat) return;
+  e.preventDefault();
+  document.activeElement && document.activeElement.blur();
+  toggleListen();
+});
 </script>
 </body>
 </html>
