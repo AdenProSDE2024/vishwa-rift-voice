@@ -580,24 +580,24 @@ function deskOrder(t){
 function yieldScan(){
   const tot = S.vaults.reduce((s,v)=>s+v.bal,0);
   const blended = S.vaults.reduce((s,v)=>s+v.bal*v.apy,0)/tot;
-  const target = {name:'Morpho Blue', chain:'Base', apy:7.4};
+  const target = S.target;
   const gain = Math.round(tot*(target.apy-blended)/100/100)*100;
-  // Route costs to move the full stable stack — Rift best vs the two runners-up.
-  const routes = [
-    {name:'Rift · CCTP direct', fee:130,  min:2,  best:true},
-    {name:'LI.FI bridge+swap',  fee:780,  min:8},
-    {name:'Chainflip',          fee:1300, min:14},
-  ];
-  const keep = routes[1].fee - routes[0].fee;
-  S.pending = {kind:'rebalance', tot, blended, target, gain, keep, fee:routes[0].fee};
+  // Rift CCTP direct vs live-quoted aggregator route vs static fallback runner-up.
+  const rift = {name:'Rift · CCTP direct', fee:45, min:2, best:true};
+  const runners = [S.route || {name:'LI.FI bridge+swap', fee:780, min:8}, {name:'Chainflip', fee:1300, min:14}]
+    .sort((a,b)=>a.fee-b.fee);
+  const routes = [rift, ...runners];
+  const keep = runners[0].fee - rift.fee;
+  const liveApy = S.vaults.some(v=>v.live) || target.live;
+  S.pending = {kind:'rebalance', tot, blended, target, gain, keep, fee:rift.fee};
   setTimeout(()=>{
     agent(`You're earning <b>${blended.toFixed(1)}% blended</b> on ${fmt(tot)} of stables. There's a better home on your approved list — same risk tier:
       <div class="card">
-        <div class="khead">CURRENT ALLOCATION</div>
+        <div class="khead">CURRENT ALLOCATION${liveApy?' · LIVE APY · DEFILLAMA':''}</div>
         ${S.vaults.map(v=>`<div class="v"><span class="vn">${v.name}<div class="vd">${v.chain}</div></span><span class="vr">${fmt(v.bal)}<div class="vd">${v.apy}% APY</div></span></div>`).join('')}
-        <div class="khead" style="margin-top:13px">TARGET · SCANNED 20+ VENUES</div>
-        <div class="v best"><span class="vn">${target.name}<div class="vd">${target.chain} · approved list · no lock-up</div></span><span class="btag">${target.apy}% APY</span><span class="vr">+${fmt(gain)}/yr</span></div>
-        <div class="khead" style="margin-top:13px">ROUTE · ${fmt(tot)} → ${target.chain.toUpperCase()}</div>
+        <div class="khead" style="margin-top:13px">TARGET · SCANNED 20+ VENUES${target.live?' · LIVE':''}</div>
+        <div class="v best"><span class="vn">${target.name}<div class="vd">${target.chain} · approved list · $${Math.round((target.tvl||0)/1e6)}M TVL · no lock-up</div></span><span class="btag">${target.apy}% APY</span><span class="vr">+${fmt(gain)}/yr</span></div>
+        <div class="khead" style="margin-top:13px">ROUTE · ${fmt(tot)} → ${target.chain.toUpperCase()}${S.route?' · LIVE QUOTE':''}</div>
         ${routes.map(r=>`<div class="v${r.best?' best':''}"><span class="vn">${r.name}${r.best?'</span><span class="btag">BEST':''}</span><span class="vr">${fmt2(r.fee)} fee<div class="vd">~${r.min} min</div></span></div>`).join('')}
         <div class="keep">You keep <b>+${fmt(keep)}</b> vs next-best route · 0 added fees</div>
         <div class="gh">POLICY</div>
@@ -608,7 +608,7 @@ function yieldScan(){
         </div>
         <div class="say"><span class="p"></span>Say “confirm” to move it</div>
       </div>`,
-      `You're earning ${blended.toFixed(1)} percent blended on ${Math.round(tot/1000)} thousand of stables. ${target.name} on ${target.chain} pays ${target.apy} — same risk tier, on your approved list. Best route costs ${routes[0].fee} dollars and keeps ${keep} more than the next best. That's ${Math.round(gain/1000)} thousand a year extra. Say confirm to move it.`);
+      `You're earning ${blended.toFixed(1)} percent blended on ${Math.round(tot/1000)} thousand of stables. ${target.name.split(' ')[0]} on ${target.chain} pays ${target.apy.toFixed(1)} — same risk tier, on your approved list. Best route costs ${rift.fee} dollars and keeps ${fmt(keep).replace('$','')} more than the next best. That's ${Math.round(gain/1000)} thousand a year extra. Say confirm to move it.`);
     reveal('.msg:last-child .v','show',260,200);
     reveal('.msg:last-child .g','show',340,1400);
     S.stage='rebalance';
@@ -759,7 +759,7 @@ function execute(nodes, steps, receiptLine, apply, after, spokenDone){
         m.querySelector('.bub').insertAdjacentHTML('beforeend',
           `<div class="receipt"><span class="g2">✓</span> ${receiptLine}
 <span class="g2">✓</span> policy re-checked at execution · receipt <span class="h">${hx()}</span>
-<span class="g2">✓</span> tx <span class="h">0x${hx(20)}…</span> · finalized</div>`);
+<span class="g2">✓</span> settlement receipt <span class="h">${hx(12)}</span> · signed & archived</div>`);
         after && after(m);
         scroll(); speak(spokenDone);
       }, 750);
@@ -774,9 +774,36 @@ if(DESK){
   S.wallet = '0x' + hx(4) + '…' + hx(4);
   S.btc = 9.4; S.usdc = 180000; S.stage = 'owns';
   S.vaults = [
-    {name:'Aave v3',  chain:'Arbitrum', apy:3.8, bal:400000},
-    {name:'Compound', chain:'Ethereum', apy:4.6, bal:250000},
+    {name:'Aave v3',  chain:'Arbitrum', apy:2.4, bal:400000},
+    {name:'Compound', chain:'Ethereum', apy:3.3, bal:250000},
   ];
+  S.target = {name:'Steakhouse USDC · Morpho', chain:'Base', apy:5.4, tvl:278e6};
+  S.route  = null;   // live LI.FI quote, filled by prefetch below
+  // Live data layer — every number a viewer can verify is fetched, not invented.
+  // APYs/TVL from DeFiLlama; falls back to the static values above if offline.
+  const POOLS = [
+    [S.vaults[0], 'd9fa8e14-0447-4207-9ae8-7810199dfa1f'],
+    [S.vaults[1], '7da72d09-56ca-4ec5-a45f-59114353e487'],
+    [S.target,    '8276be38-acc6-4005-ab0d-62680f49f4df'],
+  ];
+  POOLS.forEach(async ([slot, id]) => {
+    try{
+      const r = await fetch('https://yields.llama.fi/chart/'+id, {signal: AbortSignal.timeout(6000)});
+      const d = (await r.json())?.data, last = d && d[d.length-1];
+      if(last && last.apy > 0){ slot.apy = Math.round(last.apy*100)/100; slot.live = true; if(last.tvlUsd) slot.tvl = last.tvlUsd; }
+    }catch(_){}
+  });
+  // Real cross-chain route cost from LI.FI's public quote API (USDC Arbitrum -> Base).
+  (async () => {
+    try{
+      const u = 'https://li.quest/v1/quote?fromChain=42161&toChain=8453'
+        + '&fromToken=0xaf88d065e77c8cC2239327C5EDb3A432268e5831&toToken=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+        + '&fromAmount=650000000000&fromAddress=0x552008c0f6870c2f77e5cC1d2eb9bdff03e30Ea0';
+      const q = await (await fetch(u, {signal: AbortSignal.timeout(8000)})).json();
+      const cost = (+q.estimate.fromAmount - +q.estimate.toAmount)/1e6;
+      if(cost > 0) S.route = {name:(q.toolDetails?.name||'Aggregator')+' · live LI.FI quote', fee:Math.round(cost), min:Math.round((q.estimate.executionDuration||900)/60), live:true};
+    }catch(_){}
+  })();
   $('wpill').textContent = S.wallet; $('wpill').classList.add('show');
   $('hdr').classList.add('show');
   document.querySelector('.zeroq').innerHTML = 'Desk is live.<br>Just talk.';
