@@ -154,6 +154,33 @@
   .tr{flex:1;min-height:19px;font-size:13.5px;color:var(--text);text-align:right;font-style:italic;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
   .mw{position:relative;flex:none}
 
+  /* desk status board — console readout, not marketing copy */
+  .board{width:100%;max-width:340px;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden;text-align:left}
+  .brow{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.05);font-family:var(--mono)}
+  .brow .bv{text-align:right}
+  .brow:last-child{border-bottom:none}
+  .brow .bl{font-size:8.5px;letter-spacing:.16em;color:var(--faint)}
+  .brow .bv{font-size:11px;color:var(--ink)}
+  .brow .bv .ok{color:var(--good)}
+  .livedot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);margin-right:6px;animation:breathe 2.4s ease-in-out infinite;vertical-align:1px}
+
+  /* allocation bars — where the money sits, visually */
+  .alloc{margin-top:10px}
+  .abar{display:flex;height:26px;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+  .aseg{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:var(--ink);
+    letter-spacing:.04em;white-space:nowrap;overflow:hidden;min-width:0;transition:flex-grow .8s cubic-bezier(.4,0,.2,1)}
+  .aleg{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:7px}
+  .aleg span{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9.5px;color:var(--text)}
+  .aleg i{width:8px;height:8px;border-radius:2px;flex:none}
+  .spark{display:block;margin-left:auto}
+
+  /* result stat cells */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:11px}
+  .stat{background:#070A0E;border:1px solid var(--line);border-radius:8px;padding:11px 8px;text-align:center}
+  .stat b{display:block;font-family:var(--mono);font-size:16px;font-weight:600;color:var(--ink);letter-spacing:-.01em}
+  .stat.hi b{color:var(--good)}
+  .stat span{display:block;font-family:var(--mono);font-size:7px;letter-spacing:.14em;color:var(--faint);margin-top:5px}
+
   /* keep pill — the concrete savings vs next-best route, made loud */
   .keep{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:11px;font-size:13px;color:var(--ink);
     background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.3);border-radius:8px;padding:11px}
@@ -193,6 +220,14 @@
     .mstat{font-size:9px}
     .keep{font-size:15px}
     .keep b{font-size:21px}
+    .board{max-width:420px}
+    .brow .bl{font-size:9.5px}
+    .brow .bv{font-size:12.5px}
+    .abar{height:30px}
+    .aseg{font-size:10px}
+    .aleg span{font-size:11px}
+    .stat b{font-size:20px}
+    .stat span{font-size:8px}
   }
   .mring{position:absolute;inset:-9px;border-radius:50%;border:1.5px solid rgba(198,243,46,.35);opacity:0}
   .listening .mring{animation:ring 1.5s infinite}
@@ -615,6 +650,18 @@ function deskOrder(t){
 }
 
 /* ---- desk act: yield rebalance across vaults ---- */
+const SEG_COLORS = ['#2F3D52','#42536E','#586C8C'];
+function allocBar(items, colors){
+  // items: [{label, frac}]
+  const segs = items.map((it,i)=>`<div class="aseg" style="flex-grow:${Math.max(it.frac,0.001)};background:${colors[i]}">${it.frac>0.16?it.label:''}</div>`).join('');
+  return `<div class="abar">${segs}</div>`;
+}
+function spark(series, color){
+  if(!series || series.length < 8) return '';
+  const w=72, h=20, min=Math.min(...series), max=Math.max(...series), span=(max-min)||1;
+  const pts = series.map((v,i)=>`${(i/(series.length-1)*w).toFixed(1)},${(h-2-(v-min)/span*(h-4)).toFixed(1)}`).join(' ');
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+}
 function yieldScan(){
   const tot = S.vaults.reduce((s,v)=>s+v.bal,0);
   const blended = S.vaults.reduce((s,v)=>s+v.bal*v.apy,0)/tot;
@@ -632,9 +679,13 @@ function yieldScan(){
     agent(`You're earning <b>${blended.toFixed(1)}% blended</b> on ${fmt(tot)} of stables. There's a better home on your approved list — same risk tier:
       <div class="card">
         <div class="khead">CURRENT ALLOCATION${liveApy?' · LIVE APY · DEFILLAMA':''}</div>
-        ${S.vaults.map(v=>`<div class="v"><span class="vn">${v.name}<div class="vd">${v.chain}</div></span><span class="vr">${fmt(v.bal)}<div class="vd">${v.apy}% APY</div></span></div>`).join('')}
+        <div class="alloc">
+          ${allocBar(S.vaults.map(v=>({label:v.name.split(' ')[0].toUpperCase()+' '+v.apy+'%', frac:v.bal/tot})), SEG_COLORS)}
+          <div class="aleg">${S.vaults.map((v,i)=>`<span><i style="background:${SEG_COLORS[i]}"></i>${v.name} · ${v.chain} · ${fmt(v.bal)} · ${v.apy}%</span>`).join('')}</div>
+        </div>
         <div class="khead" style="margin-top:13px">TARGET · SCANNED 20+ VENUES${target.live?' · LIVE':''}</div>
-        <div class="v best"><span class="vn">${target.name}<div class="vd">${target.chain} · approved list · $${Math.round((target.tvl||0)/1e6)}M TVL · no lock-up</div></span><span class="btag">${target.apy}% APY</span><span class="vr">+${fmt(gain)}/yr</span></div>
+        <div class="v best show"><span class="vn">${target.name}<div class="vd">${target.chain} · approved list · $${Math.round((target.tvl||0)/1e6)}M TVL · no lock-up</div></span><span class="btag">${target.apy}% APY</span>${spark(target.series,'#8496FF')}<span class="vr">+${fmt(gain)}/yr</span></div>
+        ${target.series?`<div class="aleg" style="margin-top:3px"><span style="margin-left:auto;color:var(--faint)">45-day APY trend</span></div>`:''}
         <div class="khead" style="margin-top:13px">ROUTE · ${fmt(tot)} → ${target.chain.toUpperCase()}${S.route?' · LIVE QUOTE':''}</div>
         ${routes.map(r=>`<div class="v${r.best?' best':''}"><span class="vn">${r.name}${r.best?'</span><span class="btag">BEST':''}</span><span class="vr">${fmt2(r.fee)} fee<div class="vd">~${r.min} min</div></span></div>`).join('')}
         <div class="keep">You keep <b>+${fmt(keep)}</b> vs next-best route · 0 added fees</div>
@@ -695,11 +746,15 @@ function showPositions(){
   S.vaults.forEach(v => rows.push([v.name, v.chain+' · '+v.apy+'% APY', fmt(v.bal), v.bal]));
   if(S.vault) rows.push(['VAULT','Base · 7.4% APY', fmt(S.vault), S.vault]);
   const tot = rows.reduce((s,r)=>s+r[3],0);
+  const PAL = ['#6E5A3A','#3D5A48','#4A5A78','#5C4F72'];
   agent(`You own:
     <div class="card">
-      <div class="khead">YOUR WALLET · ${S.wallet}</div>
+      <div class="khead">PORTFOLIO · ${S.wallet}</div>
       <span class="big">${fmt(tot)}</span>
-      ${rows.map(r=>`<div class="row"><span>${r[0]} <span style="color:var(--faint);font-size:11px">· ${r[1]}</span></span><b>${r[2]}</b></div>`).join('')}
+      <div class="alloc" style="margin:8px 0 4px">
+        ${allocBar(rows.map((r,i)=>({label:r[0].split(' ')[0].toUpperCase()+' '+Math.round(r[3]/tot*100)+'%', frac:r[3]/tot})), PAL)}
+      </div>
+      ${rows.map((r,i)=>`<div class="row"><span><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${PAL[i]};margin-right:7px"></i>${r[0]} <span style="color:var(--faint);font-size:11px">· ${r[1]}</span></span><b>${r[2]}</b></div>`).join('')}
     </div>`,
     `Here’s everything you hold — every position in one view.`);
 }
@@ -751,7 +806,15 @@ function affirm(t){
       () => { S.vaults = [{name:job.target.name, chain:job.target.chain, apy:job.target.apy, bal:job.tot - job.fee}]; },
       m => {
         m.querySelector('.bub').insertAdjacentHTML('beforeend',
-          `<div class="own"><div class="ob">${job.blended.toFixed(1)}% → ${job.target.apy}%</div><div class="os">+${fmt(job.gain)}/yr · kept +${fmt(job.keep)} vs next-best route</div></div>`);
+          `<div class="alloc" style="margin-top:12px">
+            <div class="khead">NEW ALLOCATION</div>
+            ${allocBar([{label:job.target.name.split(' ')[0].toUpperCase()+' · '+job.target.chain.toUpperCase()+' · '+job.target.apy+'%', frac:1}], ['#3D5A48'])}
+            <div class="stats">
+              <div class="stat hi"><b>${job.blended.toFixed(1)}→${job.target.apy}%</b><span>BLENDED APY</span></div>
+              <div class="stat hi"><b>+${fmt(job.gain)}</b><span>PROJECTED /YR</span></div>
+              <div class="stat"><b>+${fmt(job.keep)}</b><span>ROUTE KEPT</span></div>
+            </div>
+          </div>`);
         hints(['What do I own?','Sell $500K of bitcoin']);
       },
       `Moved. Your yield just stepped up — and the route itself kept real money over the next best. Receipt is signed.`);
@@ -828,7 +891,7 @@ if(DESK){
     try{
       const r = await fetch('https://yields.llama.fi/chart/'+id, {signal: AbortSignal.timeout(6000)});
       const d = (await r.json())?.data, last = d && d[d.length-1];
-      if(last && last.apy > 0){ slot.apy = Math.round(last.apy*100)/100; slot.live = true; if(last.tvlUsd) slot.tvl = last.tvlUsd; }
+      if(last && last.apy > 0){ slot.apy = Math.round(last.apy*100)/100; slot.live = true; if(last.tvlUsd) slot.tvl = last.tvlUsd; slot.series = d.slice(-45).map(p=>p.apy); }
     }catch(_){}
   });
   // Real cross-chain route cost from LI.FI's public quote API (USDC Arbitrum -> Base).
@@ -844,8 +907,16 @@ if(DESK){
   })();
   $('wpill').textContent = S.wallet; $('wpill').classList.add('show');
   $('hdr').classList.add('show');
-  document.querySelector('.zeroq').innerHTML = 'Desk is live.<br>Just talk.';
-  document.querySelector('.zerosub').textContent = 'Hands-free — the mic stays open. Positions loaded · limits armed · second approver on call.';
+  document.querySelector('.orb').style.display = 'none';
+  document.querySelector('.zeroq').innerHTML = 'Execution desk';
+  document.querySelector('.zerosub').outerHTML = `
+    <div class="board">
+      <div class="brow"><span class="bl">SESSION</span><span class="bv"><span class="livedot"></span>voice · hands-free · open</span></div>
+      <div class="brow"><span class="bl">VENUES</span><span class="bv">20+ connected · RFQ live</span></div>
+      <div class="brow"><span class="bl">POLICY</span><span class="bv">$25K/trade · $100K/day · <span class="ok">armed</span></span></div>
+      <div class="brow"><span class="bl">APPROVALS</span><span class="bv">dual-sign above solo limit</span></div>
+      <div class="brow"><span class="bl">CUSTODY</span><span class="bv">self · passkey · receipts signed</span></div>
+    </div>`;
   hints(['Sell $500K of bitcoin','Find me better yield','What do I own?']);
   handsFree = true;
   $('mstat').textContent = 'HANDS-FREE — JUST TALK';
