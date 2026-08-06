@@ -654,9 +654,22 @@ function quote(asset, usd){
 }
 
 /* ---- act 2: desk-scale order ---- */
+function fractionOf(t){
+  t = t.toLowerCase();
+  const m = t.match(/(\d+(?:\.\d+)?)\s*(?:percent|%)/); if(m) return Math.min(1, parseFloat(m[1])/100);
+  if(/\b(all|everything|entire|whole)\b/.test(t)) return 1;
+  if(/\bthree\s*quarters?\b/.test(t)) return .75;
+  if(/\bhalf\b/.test(t)) return .5;
+  if(/\b(a\s+)?quarter\b/.test(t)) return .25;
+  if(/\b(a\s+)?third\b/.test(t)) return 1/3;
+  return null;
+}
 function deskOrder(t){
   if(!S.wallet){ S.want={asset:'BTC',amount:null}; return offerWallet('BTC'); }
-  const amt = amountOf(t) || 5e5;
+  const posUsd = S.btc * BTC;
+  const frac = fractionOf(t);
+  // Relative sizes resolve against the live position; absolutes clamp to what's actually held.
+  const amt = Math.min(posUsd, Math.round((frac ? frac*posUsd : (amountOf(t) || 5e5))/100)*100);
   const usdc = amt*0.9989;
   const spokenAmt = amt >= 1e6 ? `${Math.round(amt/1e5)/10} million` : `${Math.round(amt/1e3)} thousand`;
   S.pending = {kind:'desk', amt, usdc};
@@ -786,8 +799,8 @@ function showPolicy(){
 }
 function showPositions(){
   const rows = [];
-  if(S.btc) rows.push(['BTC','Bitcoin', S.btc.toFixed(5)+' BTC', S.btc*BTC]);
-  if(S.usdc) rows.push(['USDC','Base', Math.round(S.usdc).toLocaleString()+' USDC', S.usdc]);
+  if(S.btc) rows.push(['BTC', S.btc.toFixed(4)+' BTC · '+fmt2(BTC)+'/BTC', fmt(S.btc*BTC), S.btc*BTC]);
+  if(S.usdc) rows.push(['USDC','Base · '+Math.round(S.usdc).toLocaleString()+' USDC', fmt(S.usdc), S.usdc]);
   S.vaults.forEach(v => rows.push([v.name, v.chain+' · '+v.apy+'% APY', fmt(v.bal), v.bal]));
   if(S.vault) rows.push(['VAULT','Base · 7.4% APY', fmt(S.vault), S.vault]);
   const tot = rows.reduce((s,r)=>s+r[3],0);
