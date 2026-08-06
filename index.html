@@ -407,25 +407,18 @@ const scroll = () => { feed.scrollTop = feed.scrollHeight; };
 // Fixed agent lines ship as pre-rendered neural audio (voice/*.mp3, en-US-AndrewNeural).
 // Numbers live on screen; the voice narrates — so every line stays true whatever the live data says.
 const VOICE_FILES = {
-  'Desk is live. Positions and limits are loaded — give me an order.':'desk-boot',
-  'What do you want to own? Just say it — no account, no forms, no keyboard.':'cold-boot',
-  'You don’t have a wallet yet — let’s make one. No seed phrase; your face is the key. Tap to create it.':'wallet-offer',
-  'Wallet is live and passkey secured — it works across Bitcoin, Ethereum, Base and Arbitrum at once. Spending limits are set. How much do you want to put in?':'wallet-live',
+  'Desk is live — give me an order.':'desk-boot',
+  'What do you want to own? Just say it.':'cold-boot',
+  'Let’s make you a wallet — your face is the key. Tap to create it.':'wallet-offer',
+  'Wallet’s live. How much do you want to put in?':'wallet-live',
   'How much do you want to put in?':'ask-amount',
-  'Best price locked — routed across every venue, and you keep more than any single venue would give you. It’s inside your limits. Say confirm.':'quote',
-  'Order parsed. Best fill is a split route across three venues — that keeps real money over the best single venue. It’s above your solo limit, so it needs a second approver. Say confirm.':'desk-order',
-  'Scan done. Your stables are earning under their potential — there’s a stronger home on your approved list, same risk tier, no lock-up. The best route costs a fraction of the alternatives. Say confirm to move it.':'yield-scan',
-  'That cash can earn. Best risk-adjusted vault on your approved list — deposit from any chain, unwind anytime. Say confirm.':'vault-offer',
-  'Twenty five thousand per trade, a hundred thousand a day, venue whitelist, and anything bigger needs a second approver. Kill switch armed.':'policy',
-  'Here’s everything you hold — every position in one view.':'positions',
+  'Twenty-five K per trade, a hundred K a day — anything bigger needs a second approver.':'policy',
+  'Here’s everything you hold.':'positions',
   'Nothing pending.':'no-pending',
   'Cancelled. Nothing moved.':'cancelled',
   'Nothing pending yet.':'nothing-yet',
-  'Done. It’s yours — held in your own wallet, not on an exchange. That took about thirty seconds, and you never touched a keyboard.':'buy-done',
-  'Filled. Settled on Base — split across three venues, dual approved, one signature. Receipt is signed.':'desk-done',
-  'Moved. Your yield just stepped up — and the route itself kept real money over the next best. Receipt is signed.':'rebalance-done',
-  'Deposited. It’s earning now — say the word and I’ll unwind it anytime.':'vault-done',
-  'Tell me what you want to own. For example, buy some bitcoin.':'fallback',
+  'Done — it’s earning.':'vault-done',
+  'Just tell me what you want — like, buy some bitcoin.':'fallback',
 };
 let curAudio = null;
 // Browsers block audio before the first click/keypress. Never fall back to the
@@ -443,24 +436,47 @@ function pickVoice(){
   for(const p of pref){ const v = vs.find(v=>p.test(v.name)); if(v) return v; }
   return vs.find(v=>/en-US/i.test(v.lang)) || vs[0] || null;
 }
+function playUrl(url, t){
+  curAudio && curAudio.pause();
+  curAudio = new Audio(url);
+  S._speaking = true;
+  curAudio.onended = curAudio.onerror = () => { S._speaking = false; };
+  curAudio.play().catch(()=>{
+    S._speaking = false;
+    if(!audioUnlocked){ pendingLine = t; $('mstat').textContent = 'TAP ONCE TO ENABLE VOICE'; }
+    else speakSys(t);
+  });
+}
+// Dynamic lines carry live numbers, so they're synthesized at runtime with the same
+// Charlie voice. The key lives only in this browser's localStorage — run once in DevTools:
+//   localStorage.setItem('xi_key', 'sk_…')
+// No key → system-voice fallback. Responses are cached per sentence.
+const ttsCache = new Map();
+async function speakDynamic(t){
+  const key = localStorage.getItem('xi_key');
+  if(!key) return speakSys(t);
+  S._speaking = true;   // hold the mic shut while the line is being synthesized
+  try{
+    let url = ttsCache.get(t);
+    if(!url){
+      const r = await fetch('https://api.elevenlabs.io/v1/text-to-speech/IKne3meq5aSn9XLyUdCD?output_format=mp3_44100_128', {
+        method:'POST',
+        headers:{'xi-api-key':key, 'Content-Type':'application/json'},
+        body: JSON.stringify({text:t, model_id:'eleven_turbo_v2_5', voice_settings:{stability:0.5, similarity_boost:0.8, style:0.3}}),
+        signal: AbortSignal.timeout(6000),
+      });
+      if(!r.ok) throw 0;
+      url = URL.createObjectURL(await r.blob());
+      ttsCache.set(t, url);
+    }
+    playUrl(url, t);
+  }catch(_){ S._speaking = false; speakSys(t); }
+}
 function speak(t){
   if(S.muted) return;
   const f = VOICE_FILES[t];
-  if(f){
-    try{
-      curAudio && curAudio.pause();
-      curAudio = new Audio('voice/'+f+'.mp3');
-      S._speaking = true;
-      curAudio.onended = curAudio.onerror = () => { S._speaking = false; };
-      curAudio.play().catch(()=>{
-        S._speaking = false;
-        if(!audioUnlocked){ pendingLine = t; $('mstat').textContent = 'TAP ONCE TO ENABLE VOICE'; }
-        else speakSys(t);
-      });
-      return;
-    }catch(_){ S._speaking = false; }
-  }
-  speakSys(t);
+  if(f){ playUrl('voice/'+f+'.mp3', t); return; }
+  speakDynamic(t);
 }
 function speakSys(t){
   if(!window.speechSynthesis) return;
@@ -590,7 +606,7 @@ function heard(text){
   if(/limit|policy|rule|safe/.test(t)) return showPolicy();
 
   agent(`Tell me what you want to own — like <b>“buy some bitcoin”</b>. I'll open a wallet if you don't have one, find the best price across every venue, and settle it.`,
-    `Tell me what you want to own. For example, buy some bitcoin.`);
+    `Just tell me what you want — like, buy some bitcoin.`);
 }
 
 /* ---- act 1: want asset ---- */
@@ -607,7 +623,7 @@ function offerWallet(asset){
     agent(`Nice — <b>${asset === 'BTC' ? 'bitcoin' : asset}</b> it is. You don't have a wallet yet, so let's make one. It takes one second and there's <b>no seed phrase to write down</b> — your face is the key.
       <button class="faceid" id="fid" onclick="createWallet()">Create wallet with Face ID</button>
       <div class="noseed">Held by you, not by us. The only thing you ever touch is your own face.</div>`,
-      `You don’t have a wallet yet — let’s make one. No seed phrase; your face is the key. Tap to create it.`);
+      `Let’s make you a wallet — your face is the key. Tap to create it.`);
     hints(['Create it']);
   }, 400);
 }
@@ -646,7 +662,7 @@ async function createWallet(){
         <div class="row"><span>Kill switch</span><b>armed</b></div>
       </div>
       How much do you want to put in?`,
-      `Wallet is live and passkey secured — it works across Bitcoin, Ethereum, Base and Arbitrum at once. Spending limits are set. How much do you want to put in?`);
+      `Wallet’s live. How much do you want to put in?`);
     S.stage='needAmount';
     hints(['Five hundred dollars','Two thousand dollars']);
   }, 900);
@@ -683,7 +699,7 @@ function quote(asset, usd){
         </div>
         <div class="say"><span class="p"></span>Say “confirm”</div>
       </div>`,
-      `Best price locked — routed across every venue, and you keep more than any single venue would give you. It’s inside your limits. Say confirm.`);
+      `${fmt(usd)} gets you ${units.toFixed(dec)} bitcoin. Do you want to do it?`);
     reveal('.msg:last-child .v', 'show', 260, 200);
     reveal('.msg:last-child .g', 'show', 340, 700);
     S.stage='quote';
@@ -737,7 +753,7 @@ function deskOrder(t){
         </div>
         <div class="say"><span class="p"></span>Say “confirm” to route for approval</div>
       </div>`,
-      `Order parsed. Best fill is a split route across three venues — that keeps real money over the best single venue. It’s above your solo limit, so it needs a second approver. Say confirm.`);
+      `Selling ${fmt(amt)} of bitcoin for ${fmt(Math.round(usdc))} USDC on Base. Do you want to do it?`);
     reveal('.msg:last-child .v','show',280,200);
     reveal('.msg:last-child .g','show',360,1300);
     S.stage='desk';
@@ -799,7 +815,7 @@ function yieldScan(){
         </div>
         <div class="say"><span class="p"></span>Say “confirm” to move it</div>
       </div>`,
-      `Scan done. Your stables are earning under their potential — there’s a stronger home on your approved list, same risk tier, no lock-up. The best route costs a fraction of the alternatives. Say confirm to move it.`);
+      `Moving ${fmt(tot)} into ${target.name.split('·')[0].trim()} at ${target.apy.toFixed(1)} percent — about ${fmt(gain)} more a year. Do you want to do it?`);
     reveal('.msg:last-child .v','show',260,200);
     reveal('.msg:last-child .g','show',340,1400);
     S.stage='rebalance';
@@ -829,7 +845,7 @@ function vaultOffer(t){
         </div>
         <div class="say"><span class="p"></span>Say “confirm”</div>
       </div>`,
-      `That cash can earn. Best risk-adjusted vault on your approved list — deposit from any chain, unwind anytime. Say confirm.`);
+      `Putting ${fmt(amt)} to work at seven point four percent. Do you want to do it?`);
     reveal('.msg:last-child .g','show',340,400);
     S.stage='vault';
     hints(['Confirm','Cancel']);
@@ -839,7 +855,7 @@ function vaultOffer(t){
 /* ---- policy / positions ---- */
 function showPolicy(){
   agent(`Your rules: <b>$25,000</b> per trade · <b>$100,000</b> a day · venue whitelist · slippage capped at 0.5% · anything above your solo limit needs a second approver · kill switch armed. Every action leaves a signed receipt.`,
-    `Twenty five thousand per trade, a hundred thousand a day, venue whitelist, and anything bigger needs a second approver. Kill switch armed.`);
+    `Twenty-five K per trade, a hundred K a day — anything bigger needs a second approver.`);
 }
 function showPositions(){
   const rows = [];
@@ -858,7 +874,7 @@ function showPositions(){
       </div>
       ${rows.map((r,i)=>`<div class="row"><span><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${PAL[i]};margin-right:7px"></i>${r[0]} <span style="color:var(--faint);font-size:11px">· ${r[1]}</span></span><b>${r[2]}</b></div>`).join('')}
     </div>`,
-    `Here’s everything you hold — every position in one view.`);
+    `Here’s everything you hold.`);
 }
 
 /* ---- confirm ---- */
@@ -885,7 +901,7 @@ function affirm(t){
           `<div class="own"><div class="ob">You own ${job.units.toFixed(job.asset==='BTC'?5:4)} ${job.asset}</div><div class="os">≈ ${fmt(job.usd)} · held in your own wallet</div></div>`);
         hints(['What do I own?','Put my cash to work','Sell $500K of bitcoin']);
       },
-      `Done. It’s yours — held in your own wallet, not on an exchange. That took about thirty seconds, and you never touched a keyboard.`,
+      `Done — you own ${job.units.toFixed(5)} bitcoin.`,
       {label:'SETTLING TO YOUR WALLET', countTo: job.units, dec: job.asset==='BTC'?5:2, suffix:' '+job.asset});
   }
   if(job.kind==='desk'){
@@ -899,7 +915,7 @@ function affirm(t){
           `<div class="own"><div class="ob">${fmt(job.usdc)} USDC on Base</div><div class="os">Dual-approved · 3 venues · one signature</div></div>`);
         hints(['Put my cash to work','What do I own?']);
       },
-      `Filled. Settled on Base — split across three venues, dual approved, one signature. Receipt is signed.`,
+      `Done — ${fmt(Math.round(job.usdc))} settled on Base.`,
       {label:'SETTLING → USDC · BASE', countTo: job.usdc, prefix:'$'});
   }
   if(job.kind==='rebalance'){
@@ -921,7 +937,7 @@ function affirm(t){
           </div>`);
         hints(['What do I own?','Sell $500K of bitcoin']);
       },
-      `Moved. Your yield just stepped up — and the route itself kept real money over the next best. Receipt is signed.`,
+      `Done — you’re earning ${job.target.apy.toFixed(1)} percent now.`,
       {label:'MOVING → '+job.target.name.split(' ')[0].toUpperCase()+' · '+job.target.chain.toUpperCase(), countTo: job.tot, prefix:'$'});
   }
   if(job.kind==='vault'){
@@ -935,7 +951,7 @@ function affirm(t){
           `<div class="own"><div class="ob">Earning 7.4%</div><div class="os">+${fmt(job.amt*0.074)}/yr · unwind by voice anytime</div></div>`);
         hints(['What do I own?','What are my limits?']);
       },
-      `Deposited. It’s earning now — say the word and I’ll unwind it anytime.`,
+      `Done — it’s earning.`,
       {label:'DEPOSITING → VAULT · BASE', countTo: job.amt, prefix:'$'});
   }
 }
@@ -1079,7 +1095,7 @@ if(DESK){
 }else{
   hints(['Buy some bitcoin','I have cash sitting idle']);
   // Boot line plays on first touch — pre-gesture audio would fall back to the robotic system voice.
-  window.addEventListener('pointerdown', ()=>{ if(S.stage==='cold' && !listening) speak(`What do you want to own? Just say it — no account, no forms, no keyboard.`); }, {once:true});
+  window.addEventListener('pointerdown', ()=>{ if(S.stage==='cold' && !listening) speak(`What do you want to own? Just say it.`); }, {once:true});
 }
 if(window.speechSynthesis) speechSynthesis.getVoices();
 // Desktop: spacebar toggles the mic — presenter can stay out of frame.
