@@ -10,56 +10,54 @@
 <title>Vishwa × Rift</title>
 <style>
   :root{
-    --bg:#05070E;
-    --glass:rgba(18,26,44,.7);
-    --line:rgba(120,140,180,.15);
-    --ink:#F4F7FC;
-    --text:#9DAAC2;
-    --faint:#5A6884;
+    --bg:#07090B;
+    --panel:#0D1117;
+    --line:rgba(255,255,255,.08);
+    --ink:#E9ECEF;
+    --text:#99A3AD;
+    --faint:#5B646E;
     --lime:#C6F32E;
-    --rift:#6E8BFF;
-    --good:#3DDC97;
-    --bad:#FF6B6B;
+    --rift:#8496FF;
+    --good:#34D399;
+    --bad:#F0716B;
     --mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;
     --font:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   html,body{height:100%}
   body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;overflow:hidden}
+  b,.big,.vr,.row b{font-variant-numeric:tabular-nums}
 
-  .ambient{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
-  .ambient i{position:absolute;border-radius:50%;filter:blur(2px)}
-  .ambient i:nth-child(1){width:560px;height:560px;top:-200px;right:-190px;background:radial-gradient(circle,rgba(110,139,255,.15),transparent 62%)}
-  .ambient i:nth-child(2){width:480px;height:480px;bottom:-170px;left:-160px;background:radial-gradient(circle,rgba(198,243,46,.07),transparent 62%)}
+  .ambient{display:none}
 
   .app{position:relative;z-index:1;height:100dvh;max-width:480px;margin:0 auto;display:flex;flex-direction:column;
     padding:calc(env(safe-area-inset-top,10px) + 4px) 0 0}
-  @media(min-width:520px){body{background:#02040A}.app{border-left:1px solid var(--line);border-right:1px solid var(--line);background:var(--bg)}}
+  @media(min-width:520px){body{background:#030405}.app{border-left:1px solid var(--line);border-right:1px solid var(--line);background:var(--bg)}}
 
   /* header — collapses in from nothing */
   header{display:flex;align-items:center;gap:9px;padding:8px 18px 4px;flex:none;opacity:0;transition:opacity .5s}
   header.show{opacity:1}
   .logo svg{height:21px;width:auto;display:block}
   .x{color:var(--faint);font-size:12px}
-  .rift{font-family:var(--mono);font-weight:700;font-size:13.5px;letter-spacing:.15em;
-    background:linear-gradient(120deg,#9DB0FF,#5F7BFF);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .rift{font-family:var(--mono);font-weight:600;font-size:13px;letter-spacing:.16em;color:var(--rift)}
   .spacer{flex:1}
   .wpill{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--good);
     border:1px solid rgba(61,220,151,.28);background:rgba(61,220,151,.09);border-radius:999px;padding:4px 9px;display:none}
   .wpill.show{display:block}
-  .mute{border:1px solid var(--line);background:var(--glass);color:var(--text);border-radius:999px;width:29px;height:29px;
-    font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+  .mute{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:8px;width:29px;height:29px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+  .mute.off{color:var(--bad)}
+  .mute.off .wv{display:none}
 
   /* ---- zero state: orb + one question ---- */
   .zero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;padding:0 32px;text-align:center}
   .zero.gone{display:none}
-  .orb{width:132px;height:132px;border-radius:50%;position:relative;
-    background:radial-gradient(circle at 34% 30%,rgba(198,243,46,.85),rgba(110,139,255,.5) 52%,rgba(20,30,55,.9) 78%);
-    box-shadow:0 0 70px -6px rgba(140,180,120,.4), inset 0 0 40px rgba(255,255,255,.12);
-    animation:float 5s ease-in-out infinite}
-  @keyframes float{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-9px) scale(1.03)}}
-  .orb::after{content:'';position:absolute;inset:-14px;border-radius:50%;border:1px solid rgba(198,243,46,.2);animation:halo 3.4s ease-out infinite}
-  @keyframes halo{0%{transform:scale(.9);opacity:.7}100%{transform:scale(1.3);opacity:0}}
+  .orb{width:96px;height:96px;border-radius:50%;position:relative;
+    background:radial-gradient(circle at 38% 32%,rgba(198,243,46,.16),rgba(13,17,23,.9) 62%);
+    border:1px solid rgba(198,243,46,.28)}
+  .orb::before{content:'';position:absolute;inset:38%;border-radius:50%;background:var(--lime);opacity:.85;animation:breathe 3.2s ease-in-out infinite}
+  @keyframes breathe{0%,100%{opacity:.55;transform:scale(.92)}50%{opacity:.9;transform:scale(1)}}
+  .orb::after{content:'';position:absolute;inset:-10px;border-radius:50%;border:1px solid rgba(198,243,46,.12)}
   .zeroq{font-size:25px;font-weight:550;letter-spacing:-.02em;line-height:1.32;color:var(--ink)}
   .zerosub{font-size:13.5px;color:var(--faint);line-height:1.55;max-width:290px}
 
@@ -67,34 +65,36 @@
   .feed{flex:1;overflow-y:auto;padding:6px 18px 14px;display:flex;flex-direction:column;gap:13px;scroll-behavior:smooth}
   .feed::-webkit-scrollbar{display:none}
   .feed.gone{display:none}
-  .msg{max-width:93%;animation:rise .36s cubic-bezier(.2,.9,.3,1.2)}
-  @keyframes rise{from{transform:translateY(15px);opacity:0}to{transform:none;opacity:1}}
+  .msg{max-width:93%;animation:rise .26s cubic-bezier(.25,.6,.3,1)}
+  @keyframes rise{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
   .msg.user{align-self:flex-end}
-  .msg.user .bub{background:linear-gradient(135deg,#233457,#182740);border:1px solid rgba(140,160,210,.2);
-    border-radius:18px 18px 5px 18px;padding:11px 15px;font-size:15px;color:var(--ink)}
+  .msg.user .bub{background:#161D28;border:1px solid var(--line);
+    border-radius:10px 10px 3px 10px;padding:11px 15px;font-size:15px;color:var(--ink)}
   .who{font-family:var(--mono);font-size:7.5px;letter-spacing:.18em;color:var(--faint);margin-bottom:5px}
   .msg.user .who{text-align:right}
-  .msg.agent .bub{background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(14px);
-    border-radius:5px 18px 18px 18px;padding:13px 15px;font-size:14.5px;line-height:1.55;color:var(--text)}
+  .msg.agent .bub{background:var(--panel);border:1px solid var(--line);
+    border-radius:3px 10px 10px 10px;padding:13px 15px;font-size:14.5px;line-height:1.55;color:var(--text)}
   .bub b{color:var(--ink);font-weight:600}
   .bub .big{font-family:var(--mono);font-size:27px;font-weight:600;color:var(--ink);display:block;margin:3px 0 2px;letter-spacing:-.02em}
   .bub .sub{font-size:12.5px;color:var(--faint)}
 
-  .card{background:rgba(8,13,26,.7);border:1px solid var(--line);border-radius:15px;padding:14px;margin-top:11px}
+  .card{background:#0A0E13;border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:11px}
   .khead{font-family:var(--mono);font-size:8px;letter-spacing:.17em;color:var(--faint);margin-bottom:10px}
   .row{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--text);padding:5px 0}
   .row b{font-family:var(--mono);font-weight:550;color:var(--ink)}
   .win{color:var(--good)}
 
-  /* venue ladder */
-  .v{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;margin-top:6px;font-size:12.5px;color:var(--text);border:1px solid transparent;opacity:0;transform:translateX(-8px);transition:all .35s}
+  /* venue ladder — hairline rows, not floating pills */
+  .v{display:flex;align-items:center;gap:9px;padding:9px 4px;margin:0;font-size:12.5px;color:var(--text);
+    border-bottom:1px solid rgba(255,255,255,.05);opacity:0;transform:translateX(-6px);transition:all .3s}
+  .v:last-of-type{border-bottom:none}
   .v.show{opacity:1;transform:none}
   .v .vn{font-weight:600;color:var(--ink)}
-  .v .vd{font-family:var(--mono);font-size:9.5px;color:var(--faint)}
+  .v .vd{font-family:var(--mono);font-size:9.5px;color:var(--faint);font-weight:400}
   .v .vr{margin-left:auto;font-family:var(--mono);font-size:12px;text-align:right}
-  .v.best{background:rgba(110,139,255,.13);border-color:rgba(110,139,255,.34)}
-  .v.best .vr{color:#B3C4FF;font-weight:600}
-  .btag{font-family:var(--mono);font-size:7px;letter-spacing:.1em;background:linear-gradient(120deg,#9DB0FF,#5F7BFF);color:#0A1128;border-radius:4px;padding:2px 5px;font-weight:700}
+  .v.best{background:rgba(132,150,255,.06);border-left:2px solid var(--rift);padding-left:10px;border-radius:0 6px 6px 0;border-bottom:none}
+  .v.best .vr{color:#AFBDFF;font-weight:600}
+  .btag{font-family:var(--mono);font-size:7px;letter-spacing:.12em;border:1px solid rgba(132,150,255,.5);color:#AFBDFF;border-radius:3px;padding:2px 5px;font-weight:600}
   .split{font-family:var(--mono);font-size:10px;color:var(--rift);margin-top:9px;letter-spacing:.02em}
 
   /* policy gates */
@@ -108,11 +108,11 @@
   .g.warn i{background:rgba(255,194,75,.15);color:#FFC24B}
 
   /* face id */
-  .faceid{width:100%;margin-top:12px;border:none;border-radius:14px;padding:15px;cursor:pointer;
-    background:linear-gradient(135deg,var(--lime),#A8D619);color:#1A2405;font-size:15px;font-weight:650;font-family:var(--font);
-    display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 8px 26px -8px rgba(198,243,46,.5)}
-  .faceid:active{transform:scale(.98)}
-  .faceid.done{background:rgba(61,220,151,.13);color:var(--good);box-shadow:none;cursor:default}
+  .faceid{width:100%;margin-top:12px;border:none;border-radius:9px;padding:14px;cursor:pointer;
+    background:var(--lime);color:#181F04;font-size:15px;font-weight:650;font-family:var(--font);
+    display:flex;align-items:center;justify-content:center;gap:9px}
+  .faceid:active{transform:scale(.99)}
+  .faceid.done{background:rgba(52,211,153,.12);color:var(--good);cursor:default}
   .noseed{font-size:11px;color:var(--faint);text-align:center;margin-top:9px;line-height:1.5}
 
   /* route */
@@ -120,26 +120,26 @@
   .rn{display:flex;flex-direction:column;align-items:center;gap:6px;z-index:2;min-width:50px}
   .rn .rc{width:36px;height:36px;border-radius:50%;background:#0A1020;border:1px solid var(--line);display:flex;align-items:center;
     justify-content:center;font-weight:700;font-size:10.5px;color:var(--text);transition:all .35s}
-  .rn.on .rc{border-color:var(--rift);color:#fff;box-shadow:0 0 18px rgba(110,139,255,.55)}
+  .rn.on .rc{border-color:var(--rift);color:#fff}
   .rn.done .rc{border-color:var(--good);color:var(--good)}
   .rn span{font-family:var(--mono);font-size:7.5px;letter-spacing:.07em;color:var(--faint);text-align:center}
-  .rline{position:absolute;top:18px;left:42px;right:42px;height:2px;background:rgba(120,140,180,.14);z-index:1;border-radius:2px}
-  .rfill{height:100%;width:0;background:linear-gradient(90deg,var(--rift),#B3C4FF);border-radius:2px;transition:width .85s ease;box-shadow:0 0 10px rgba(110,139,255,.6)}
+  .rline{position:absolute;top:18px;left:42px;right:42px;height:1px;background:rgba(255,255,255,.09);z-index:1}
+  .rfill{height:100%;width:0;background:var(--rift);transition:width .85s ease}
   .rstep{font-family:var(--mono);font-size:10px;color:var(--text);margin-top:10px;min-height:14px}
   .rstep.done{color:var(--good)}
 
-  .receipt{font-family:var(--mono);font-size:10px;color:var(--text);background:rgba(4,7,15,.85);border:1px solid var(--line);
-    border-radius:11px;padding:11px 13px;margin-top:11px;line-height:1.85;overflow-x:auto;white-space:nowrap}
+  .receipt{font-family:var(--mono);font-size:10px;color:var(--text);background:#070A0E;border:1px solid var(--line);
+    border-radius:8px;padding:11px 13px;margin-top:11px;line-height:1.85;overflow-x:auto;white-space:nowrap}
   .receipt .h{color:var(--lime)}.receipt .g2{color:var(--good)}
 
   .say{display:inline-flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--lime);
-    background:rgba(198,243,46,.11);border:1px solid rgba(198,243,46,.26);border-radius:999px;padding:8px 15px}
+    border:1px solid rgba(198,243,46,.3);border-radius:8px;padding:8px 14px}
   .say .p{width:7px;height:7px;border-radius:50%;background:var(--lime);animation:bl 1.5s infinite}
   @keyframes bl{0%,100%{opacity:1}50%{opacity:.35}}
 
   /* own banner */
-  .own{background:linear-gradient(135deg,rgba(61,220,151,.16),rgba(110,139,255,.1));border:1px solid rgba(61,220,151,.3);
-    border-radius:15px;padding:16px;margin-top:11px;text-align:center}
+  .own{background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.28);
+    border-radius:10px;padding:16px;margin-top:11px;text-align:center}
   .own .ob{font-family:var(--mono);font-size:24px;font-weight:600;color:var(--ink);letter-spacing:-.02em}
   .own .os{font-size:12px;color:var(--good);margin-top:4px}
 
@@ -147,8 +147,8 @@
   .dock{flex:none;padding:8px 18px calc(env(safe-area-inset-bottom,10px) + 12px);
     background:linear-gradient(180deg,transparent,rgba(3,5,11,.94) 34%);display:flex;flex-direction:column;align-items:center;gap:9px}
   .hints{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;min-height:30px}
-  .hint{border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(10px);color:var(--text);
-    border-radius:999px;padding:6px 12px;font-size:11px;cursor:pointer;transition:all .15s;animation:rise .3s}
+  .hint{border:1px solid var(--line);background:var(--panel);color:var(--text);
+    border-radius:8px;padding:6px 12px;font-size:11px;cursor:pointer;transition:all .15s;animation:rise .3s}
   .hint:active{transform:scale(.95);border-color:var(--rift)}
   .vbar{display:flex;align-items:center;gap:14px;width:100%}
   .tr{flex:1;min-height:19px;font-size:13.5px;color:var(--text);text-align:right;font-style:italic;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
@@ -156,12 +156,12 @@
 
   /* keep pill — the concrete savings vs next-best route, made loud */
   .keep{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:11px;font-size:13px;color:var(--ink);
-    background:rgba(61,220,151,.12);border:1px solid rgba(61,220,151,.32);border-radius:12px;padding:11px}
+    background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.3);border-radius:8px;padding:11px}
   .keep b{font-family:var(--mono);font-size:17px;color:var(--good)}
 
   /* order ticket — structured parse of the spoken order (accuracy proof) */
   .ticket{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
-  .tk{background:rgba(4,7,15,.75);border:1px solid var(--line);border-radius:9px;padding:7px 9px}
+  .tk{background:#070A0E;border:1px solid var(--line);border-radius:6px;padding:7px 9px}
   .tk span{display:block;font-family:var(--mono);font-size:7px;letter-spacing:.14em;color:var(--faint)}
   .tk b{display:block;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink);margin-top:3px;white-space:nowrap}
   .tk.hot b{color:var(--lime)}
@@ -197,10 +197,9 @@
   .mring{position:absolute;inset:-9px;border-radius:50%;border:1.5px solid rgba(198,243,46,.35);opacity:0}
   .listening .mring{animation:ring 1.5s infinite}
   @keyframes ring{0%{opacity:.85;transform:scale(.85)}100%{opacity:0;transform:scale(1.45)}}
-  .mic{width:66px;height:66px;border-radius:50%;border:none;cursor:pointer;position:relative;
-    background:linear-gradient(150deg,var(--lime),#9BC91B);color:#1A2405;font-size:25px;display:flex;align-items:center;justify-content:center;
-    box-shadow:0 8px 30px -6px rgba(198,243,46,.45);transition:all .2s}
-  .listening .mic{background:linear-gradient(150deg,#FF9A9A,#FF6B6B);color:#2A0808;box-shadow:0 8px 30px -6px rgba(255,107,107,.5)}
+  .mic{width:60px;height:60px;border-radius:50%;border:none;cursor:pointer;position:relative;
+    background:var(--lime);color:#181F04;display:flex;align-items:center;justify-content:center;transition:all .2s}
+  .listening .mic{background:var(--bad);color:#26100E}
   .mic:active{transform:scale(.94)}
   .wave{display:flex;align-items:center;gap:3px;height:24px;width:60px;visibility:hidden;flex:none}
   .listening .wave{visibility:visible}
@@ -244,7 +243,7 @@
     <span class="x">×</span><span class="rift">RIFT</span>
     <div class="spacer"></div>
     <div class="wpill" id="wpill"></div>
-    <button class="mute" id="mutebtn" onclick="toggleMute()">🔊</button>
+    <button class="mute" id="mutebtn" onclick="toggleMute()" aria-label="toggle voice"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path class="wv" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="wv" d="M18.5 5.5a9 9 0 0 1 0 13"/></svg></button>
   </header>
 
   <div class="zero" id="zero">
@@ -262,7 +261,7 @@
     <div class="vbar">
       <div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <div class="tr" id="tr"></div>
-      <div class="mw"><div class="mring"></div><button class="mic" id="mic" onclick="toggleListen()">🎙</button></div>
+      <div class="mw"><div class="mring"></div><button class="mic" id="mic" onclick="toggleListen()" aria-label="microphone"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg></button></div>
     </div>
     <div class="mstat" id="mstat">TAP AND SPEAK</div>
   </div>
@@ -299,21 +298,60 @@ const vib = p => { try{ navigator.vibrate && navigator.vibrate(p); }catch{} };
 const scroll = () => { feed.scrollTop = feed.scrollHeight; };
 
 /* ================= voice out ================= */
+// Fixed agent lines ship as pre-rendered neural audio (voice/*.mp3, en-US-AndrewNeural).
+// Numbers live on screen; the voice narrates — so every line stays true whatever the live data says.
+const VOICE_FILES = {
+  'Desk is live. Positions and limits are loaded — give me an order.':'desk-boot',
+  'What do you want to own? Just say it — no account, no forms, no keyboard.':'cold-boot',
+  'You don’t have a wallet yet — let’s make one. No seed phrase; your face is the key. Tap to create it.':'wallet-offer',
+  'Wallet is live and passkey secured — it works across Bitcoin, Ethereum, Base and Arbitrum at once. Spending limits are set. How much do you want to put in?':'wallet-live',
+  'How much do you want to put in?':'ask-amount',
+  'Best price locked — routed across every venue, and you keep more than any single venue would give you. It’s inside your limits. Say confirm.':'quote',
+  'Order parsed. Best fill is a split route across three venues — that keeps real money over the best single venue. It’s above your solo limit, so it needs a second approver. Say confirm.':'desk-order',
+  'Scan done. Your stables are earning under their potential — there’s a stronger home on your approved list, same risk tier, no lock-up. The best route costs a fraction of the alternatives. Say confirm to move it.':'yield-scan',
+  'That cash can earn. Best risk-adjusted vault on your approved list — deposit from any chain, unwind anytime. Say confirm.':'vault-offer',
+  'Twenty five thousand per trade, a hundred thousand a day, venue whitelist, and anything bigger needs a second approver. Kill switch armed.':'policy',
+  'Here’s everything you hold — every position in one view.':'positions',
+  'Nothing pending.':'no-pending',
+  'Cancelled. Nothing moved.':'cancelled',
+  'Nothing pending yet.':'nothing-yet',
+  'Done. It’s yours — held in your own wallet, not on an exchange. That took about thirty seconds, and you never touched a keyboard.':'buy-done',
+  'Filled. Settled on Base — split across three venues, dual approved, one signature. Receipt is signed.':'desk-done',
+  'Moved. Your yield just stepped up — and the route itself kept real money over the next best. Receipt is signed.':'rebalance-done',
+  'Deposited. It’s earning now — say the word and I’ll unwind it anytime.':'vault-done',
+  'Tell me what you want to own. For example, buy some bitcoin.':'fallback',
+};
+let curAudio = null;
+function isSpeaking(){ return S._speaking || (window.speechSynthesis && speechSynthesis.speaking); }
 function pickVoice(){
   const vs = speechSynthesis.getVoices().filter(v=>/^en[-_]/i.test(v.lang));
-  // Premium/enhanced neural voices sound far less robotic than the defaults.
   const pref = [/ava.*premium/i, /premium/i, /enhanced/i, /natural|neural/i, /siri/i, /google us english/i, /samantha/i];
   for(const p of pref){ const v = vs.find(v=>p.test(v.name)); if(v) return v; }
   return vs.find(v=>/en-US/i.test(v.lang)) || vs[0] || null;
 }
 function speak(t){
-  if(S.muted || !window.speechSynthesis) return;
+  if(S.muted) return;
+  const f = VOICE_FILES[t];
+  if(f){
+    try{
+      curAudio && curAudio.pause();
+      curAudio = new Audio('voice/'+f+'.mp3');
+      S._speaking = true;
+      curAudio.onended = curAudio.onerror = () => { S._speaking = false; };
+      curAudio.play().catch(()=>{ S._speaking = false; speakSys(t); });
+      return;
+    }catch(_){ S._speaking = false; }
+  }
+  speakSys(t);
+}
+function speakSys(t){
+  if(!window.speechSynthesis) return;
   const u = new SpeechSynthesisUtterance(t);
   u.rate = 1.0; u.pitch = 1.0;
   u.voice = pickVoice();
   speechSynthesis.cancel(); speechSynthesis.speak(u);
 }
-function toggleMute(){ S.muted=!S.muted; $('mutebtn').textContent = S.muted?'🔇':'🔊'; if(S.muted) speechSynthesis?.cancel(); }
+function toggleMute(){ S.muted=!S.muted; $('mutebtn').classList.toggle('off', S.muted); if(S.muted){ speechSynthesis?.cancel(); curAudio&&curAudio.pause(); } }
 
 /* ================= voice in ================= */
 let rec=null, listening=false, lastHeard='', dispatched=false;
@@ -352,7 +390,7 @@ function toggleListen(){
 function startListen(auto){
   if(!rec) rec=initRec();
   if(!rec){ $('mstat').textContent='TAP THE SUGGESTIONS ABOVE'; return; }
-  if(!auto) speechSynthesis?.cancel();   // manual tap interrupts the agent; auto-resume must not
+  if(!auto){ speechSynthesis?.cancel(); curAudio&&curAudio.pause(); S._speaking=false; }   // manual tap interrupts the agent; auto-resume must not
   listening=true; lastHeard=''; dispatched=false;
   $('dock').classList.add('listening');
   $('mstat').textContent='LISTENING…'; $('mstat').classList.add('hot');
@@ -368,7 +406,7 @@ function stopListen(){
 }
 // Hands-free loop: reopen the mic whenever recognition ends, but never over the agent's voice.
 setInterval(()=>{
-  if(handsFree && !listening && !document.hidden && !(window.speechSynthesis && speechSynthesis.speaking)) startListen(true);
+  if(handsFree && !listening && !document.hidden && !isSpeaking()) startListen(true);
 }, 800);
 
 /* ================= feed ================= */
@@ -451,7 +489,7 @@ function offerWallet(asset){
     agent(`Nice — <b>${asset === 'BTC' ? 'bitcoin' : asset}</b> it is. You don't have a wallet yet, so let's make one. It takes one second and there's <b>no seed phrase to write down</b> — your face is the key.
       <button class="faceid" id="fid" onclick="createWallet()">Create wallet with Face ID</button>
       <div class="noseed">Held by you, not by us. The only thing you ever touch is your own face.</div>`,
-      `${asset==='BTC'?'Bitcoin':asset} it is. You don't have a wallet yet — let's make one. No seed phrase, your face is the key. Tap to create it.`);
+      `You don’t have a wallet yet — let’s make one. No seed phrase; your face is the key. Tap to create it.`);
     hints(['Create it']);
   }, 400);
 }
@@ -527,7 +565,7 @@ function quote(asset, usd){
         </div>
         <div class="say"><span class="p"></span>Say “confirm”</div>
       </div>`,
-      `${fmt(usd)} gets you ${units.toFixed(dec)} ${asset==='BTC'?'bitcoin':asset} — that's ${saved.toFixed(2)} dollars better than any single venue. Within your limits. Say confirm.`);
+      `Best price locked — routed across every venue, and you keep more than any single venue would give you. It’s inside your limits. Say confirm.`);
     reveal('.msg:last-child .v', 'show', 260, 200);
     reveal('.msg:last-child .g', 'show', 340, 700);
     S.stage='quote';
@@ -568,7 +606,7 @@ function deskOrder(t){
         </div>
         <div class="say"><span class="p"></span>Say “confirm” to route for approval</div>
       </div>`,
-      `${spokenAmt} in bitcoin to U S D C on Base. Best fill is a split route across three venues — that keeps about ${Math.round((usdc-amt*0.9975)/100)/10} thousand dollars more than the best single venue. It's above your solo limit, so it needs a second approver. Say confirm.`);
+      `Order parsed. Best fill is a split route across three venues — that keeps real money over the best single venue. It’s above your solo limit, so it needs a second approver. Say confirm.`);
     reveal('.msg:last-child .v','show',280,200);
     reveal('.msg:last-child .g','show',360,1300);
     S.stage='desk';
@@ -608,7 +646,7 @@ function yieldScan(){
         </div>
         <div class="say"><span class="p"></span>Say “confirm” to move it</div>
       </div>`,
-      `You're earning ${blended.toFixed(1)} percent blended on ${Math.round(tot/1000)} thousand of stables. ${target.name.split(' ')[0]} on ${target.chain} pays ${target.apy.toFixed(1)} — same risk tier, on your approved list. Best route costs ${rift.fee} dollars and keeps ${fmt(keep).replace('$','')} more than the next best. That's ${Math.round(gain/1000)} thousand a year extra. Say confirm to move it.`);
+      `Scan done. Your stables are earning under their potential — there’s a stronger home on your approved list, same risk tier, no lock-up. The best route costs a fraction of the alternatives. Say confirm to move it.`);
     reveal('.msg:last-child .v','show',260,200);
     reveal('.msg:last-child .g','show',340,1400);
     S.stage='rebalance';
@@ -638,7 +676,7 @@ function vaultOffer(t){
         </div>
         <div class="say"><span class="p"></span>Say “confirm”</div>
       </div>`,
-      `You have ${Math.round(amt/1000)} thousand sitting idle. The stable vault on Base pays seven point four percent, deposit from any chain, unwind anytime. That's about ${Math.round(amt*0.074)} dollars a year. Say confirm.`);
+      `That cash can earn. Best risk-adjusted vault on your approved list — deposit from any chain, unwind anytime. Say confirm.`);
     reveal('.msg:last-child .g','show',340,400);
     S.stage='vault';
     hints(['Confirm','Cancel']);
@@ -663,7 +701,7 @@ function showPositions(){
       <span class="big">${fmt(tot)}</span>
       ${rows.map(r=>`<div class="row"><span>${r[0]} <span style="color:var(--faint);font-size:11px">· ${r[1]}</span></span><b>${r[2]}</b></div>`).join('')}
     </div>`,
-    `You're holding about ${Math.round(tot).toLocaleString()} dollars across ${rows.length} position${rows.length>1?'s':''}.`);
+    `Here’s everything you hold — every position in one view.`);
 }
 
 /* ---- confirm ---- */
@@ -690,7 +728,7 @@ function affirm(t){
           `<div class="own"><div class="ob">You own ${job.units.toFixed(job.asset==='BTC'?5:4)} ${job.asset}</div><div class="os">≈ ${fmt(job.usd)} · held in your own wallet</div></div>`);
         hints(['What do I own?','Put my cash to work','Sell $500K of bitcoin']);
       },
-      `Done. You own ${job.units.toFixed(5)} bitcoin, held in your own wallet. That took about thirty seconds and you never touched a keyboard.`);
+      `Done. It’s yours — held in your own wallet, not on an exchange. That took about thirty seconds, and you never touched a keyboard.`);
   }
   if(job.kind==='desk'){
     return execute(
@@ -703,7 +741,7 @@ function affirm(t){
           `<div class="own"><div class="ob">${fmt(job.usdc)} USDC on Base</div><div class="os">Dual-approved · 3 venues · one signature</div></div>`);
         hints(['Put my cash to work','What do I own?']);
       },
-      `Filled. ${job.usdc >= 1e6 ? Math.round(job.usdc/1e4)/100 + ' million' : Math.round(job.usdc/1e3) + ' thousand'} U S D C settled on Base, split across three venues, dual approved, one signature. Receipt is signed.`);
+      `Filled. Settled on Base — split across three venues, dual approved, one signature. Receipt is signed.`);
   }
   if(job.kind==='rebalance'){
     return execute(
@@ -716,7 +754,7 @@ function affirm(t){
           `<div class="own"><div class="ob">${job.blended.toFixed(1)}% → ${job.target.apy}%</div><div class="os">+${fmt(job.gain)}/yr · kept +${fmt(job.keep)} vs next-best route</div></div>`);
         hints(['What do I own?','Sell $500K of bitcoin']);
       },
-      `Moved. You went from ${job.blended.toFixed(1)} to ${job.target.apy} percent — about ${Math.round(job.gain/1000)} thousand dollars a year more, and the route itself kept ${job.keep} dollars over the next best. Receipt is signed.`);
+      `Moved. Your yield just stepped up — and the route itself kept real money over the next best. Receipt is signed.`);
   }
   if(job.kind==='vault'){
     return execute(
@@ -729,7 +767,7 @@ function affirm(t){
           `<div class="own"><div class="ob">Earning 7.4%</div><div class="os">+${fmt(job.amt*0.074)}/yr · unwind by voice anytime</div></div>`);
         hints(['What do I own?','What are my limits?']);
       },
-      `Deposited. You're earning seven point four percent, about ${Math.round(job.amt*0.074)} dollars a year. Say the word and I'll unwind it anytime.`);
+      `Deposited. It’s earning now — say the word and I’ll unwind it anytime.`);
   }
 }
 
