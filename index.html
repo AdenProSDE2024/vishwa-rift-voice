@@ -129,8 +129,12 @@
   .rstep.done{color:var(--good)}
 
   .receipt{font-family:var(--mono);font-size:10px;color:var(--text);background:#070A0E;border:1px solid var(--line);
-    border-radius:8px;padding:11px 13px;margin-top:11px;line-height:1.85;overflow-x:auto;white-space:nowrap}
+    border-radius:8px;padding:9px 13px;margin-top:11px}
   .receipt .h{color:var(--lime)}.receipt .g2{color:var(--good)}
+  .rrow{display:flex;gap:9px;padding:4px 0;line-height:1.6;border-bottom:1px solid rgba(255,255,255,.04)}
+  .rrow:last-child{border-bottom:none}
+  .rrow>span:first-child{flex:none}
+  .rrow>span:last-child{flex:1;min-width:0;word-break:break-word}
 
   .say{display:inline-flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--lime);
     border:1px solid rgba(198,243,46,.3);border-radius:8px;padding:8px 14px}
@@ -154,15 +158,29 @@
   .tr{flex:1;min-height:19px;font-size:13.5px;color:var(--text);text-align:right;font-style:italic;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
   .mw{position:relative;flex:none}
 
-  /* desk status board — console readout, not marketing copy */
-  .board{width:100%;max-width:340px;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden;text-align:left}
-  .brow{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.05);font-family:var(--mono)}
-  .brow .bv{text-align:right}
-  .brow:last-child{border-bottom:none}
-  .brow .bl{font-size:8.5px;letter-spacing:.16em;color:var(--faint)}
-  .brow .bv{font-size:11px;color:var(--ink)}
-  .brow .bv .ok{color:var(--good)}
-  .livedot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);margin-right:6px;animation:breathe 2.4s ease-in-out infinite;vertical-align:1px}
+  /* desk zero state — cinematic, not a spec sheet */
+  .eq{display:flex;gap:5px;align-items:center;height:36px;justify-content:center;margin-bottom:6px}
+  .eq i{width:4px;height:8px;background:var(--lime);border-radius:2px;animation:eqi 1.5s ease-in-out infinite}
+  .eq i:nth-child(2){animation-delay:.12s}.eq i:nth-child(3){animation-delay:.24s}.eq i:nth-child(4){animation-delay:.36s}
+  .eq i:nth-child(5){animation-delay:.48s}.eq i:nth-child(6){animation-delay:.6s}.eq i:nth-child(7){animation-delay:.72s}
+  @keyframes eqi{0%,100%{height:7px;opacity:.45}50%{height:28px;opacity:1}}
+  .kick{font-family:var(--mono);font-size:9px;letter-spacing:.24em;color:var(--faint);margin-bottom:14px}
+  .zeroq em{font-style:normal;color:var(--lime)}
+  .ghost{font-family:var(--mono);font-size:15px;color:var(--text);min-height:24px;margin-top:18px}
+  .caret{display:inline-block;width:8px;height:1em;background:var(--lime);vertical-align:-2px;margin-left:2px;animation:bl 1.1s infinite}
+  .zerometa{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--faint);margin-top:22px}
+
+  /* execution steps — pipeline checklist, animated */
+  .steps{margin-top:13px;display:flex;flex-direction:column;gap:8px}
+  .step{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:10.5px;color:var(--faint);opacity:.35;transition:all .3s}
+  .step i{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--line);flex:none;position:relative;font-style:normal}
+  .step.on{opacity:1;color:var(--text)}
+  .step.on i{border-color:var(--rift);border-top-color:transparent;animation:spin .7s linear infinite}
+  .step.done{opacity:1;color:var(--text)}
+  .step.done i{border-color:transparent;background:rgba(52,211,153,.15);animation:none}
+  .step.done i::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--good)}
+  .step em{margin-left:auto;font-style:normal;font-size:9px;color:var(--faint)}
+  @keyframes spin{to{transform:rotate(360deg)}}
 
   /* allocation bars — where the money sits, visually */
   .alloc{margin-top:10px}
@@ -220,9 +238,12 @@
     .mstat{font-size:9px}
     .keep{font-size:15px}
     .keep b{font-size:21px}
-    .board{max-width:420px}
-    .brow .bl{font-size:9.5px}
-    .brow .bv{font-size:12.5px}
+    .ghost{font-size:18px}
+    .kick{font-size:10px}
+    .zerometa{font-size:10px}
+    .step{font-size:12px}
+    .step em{font-size:10px}
+    .rrow{font-size:11px}
     .abar{height:30px}
     .aseg{font-size:10px}
     .aleg span{font-size:11px}
@@ -834,8 +855,23 @@ function affirm(t){
   }
 }
 
+function animateStats(scope){
+  scope.querySelectorAll('.stat b').forEach(el=>{
+    const txt = el.textContent;
+    const ms = [...txt.matchAll(/[\d,]+(?:\.\d+)?/g)], m = ms[ms.length-1];
+    if(!m) return;
+    const raw = m[0], val = parseFloat(raw.replace(/,/g,'')), dec = (raw.split('.')[1]||'').length;
+    const pre = txt.slice(0, m.index), post = txt.slice(m.index + raw.length);
+    const t0 = performance.now(), D = 850;
+    requestAnimationFrame(function f(t){
+      const k = Math.min(1,(t-t0)/D), e = 1-Math.pow(1-k,3);
+      el.textContent = pre + (val*e).toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec}) + post;
+      if(k<1) requestAnimationFrame(f);
+    });
+  });
+}
 function execute(nodes, steps, receiptLine, apply, after, spokenDone){
-  const id='e'+Date.now();
+  const id='e'+Date.now(), t0=Date.now();
   const m = agent(`On it —
     <div class="card">
       <div class="khead">EXECUTING</div>
@@ -843,25 +879,35 @@ function execute(nodes, steps, receiptLine, apply, after, spokenDone){
         ${nodes.map((n,i)=>`<div class="rn" id="${id}n${i}"><div class="rc">${n.c}</div><span>${n.n}</span></div>`).join('<div style="flex:1"></div>')}
         <div class="rline"><div class="rfill" id="${id}f"></div></div>
       </div>
-      <div class="rstep" id="${id}s">starting…</div>
+      <div class="steps">
+        ${steps.map((st,i)=>`<div class="step" id="${id}s${i}"><i></i><span>${st}</span><em id="${id}t${i}"></em></div>`).join('')}
+      </div>
     </div>`);
   hints([]);
   steps.forEach((st,i)=>{
     setTimeout(()=>{
-      $(id+'s').textContent = st;
+      $(id+'s'+i)?.classList.add('on');
       $(id+'f').style.width = ((i+1)/steps.length*100)+'%';
       $(id+'n'+i)?.classList.add('on');
-      if(i>0) $(id+'n'+(i-1))?.classList.replace('on','done');
+      if(i>0){
+        $(id+'n'+(i-1))?.classList.replace('on','done');
+        $(id+'s'+(i-1))?.classList.replace('on','done');
+        $(id+'t'+(i-1)).textContent = ((Date.now()-t0)/1000).toFixed(1)+'s';
+      }
       vib(9); scroll();
       if(i===steps.length-1) setTimeout(()=>{
         $(id+'n'+i)?.classList.replace('on','done');
-        $(id+'s').textContent='finalized ✓'; $(id+'s').classList.add('done');
+        $(id+'s'+i)?.classList.replace('on','done');
+        $(id+'t'+i).textContent = ((Date.now()-t0)/1000).toFixed(1)+'s';
         apply();
         m.querySelector('.bub').insertAdjacentHTML('beforeend',
-          `<div class="receipt"><span class="g2">✓</span> ${receiptLine}
-<span class="g2">✓</span> policy re-checked at execution · receipt <span class="h">${hx()}</span>
-<span class="g2">✓</span> settlement receipt <span class="h">${hx(12)}</span> · signed & archived</div>`);
+          `<div class="receipt">
+            <div class="rrow"><span class="g2">✓</span><span>${receiptLine}</span></div>
+            <div class="rrow"><span class="g2">✓</span><span>policy re-checked at execution · receipt <span class="h">${hx()}</span></span></div>
+            <div class="rrow"><span class="g2">✓</span><span>settlement receipt <span class="h">${hx(12)}</span> · signed &amp; archived</span></div>
+          </div>`);
         after && after(m);
+        animateStats(m);
         scroll(); speak(spokenDone);
       }, 750);
     }, 900 + i*1450);
@@ -907,23 +953,38 @@ if(DESK){
   })();
   $('wpill').textContent = S.wallet; $('wpill').classList.add('show');
   $('hdr').classList.add('show');
-  document.querySelector('.orb').style.display = 'none';
-  document.querySelector('.zeroq').innerHTML = 'Execution desk';
-  document.querySelector('.zerosub').outerHTML = `
-    <div class="board">
-      <div class="brow"><span class="bl">SESSION</span><span class="bv"><span class="livedot"></span>voice · hands-free · open</span></div>
-      <div class="brow"><span class="bl">VENUES</span><span class="bv">20+ connected · RFQ live</span></div>
-      <div class="brow"><span class="bl">POLICY</span><span class="bv">$25K/trade · $100K/day · <span class="ok">armed</span></span></div>
-      <div class="brow"><span class="bl">APPROVALS</span><span class="bv">dual-sign above solo limit</span></div>
-      <div class="brow"><span class="bl">CUSTODY</span><span class="bv">self · passkey · receipts signed</span></div>
+  // Cinematic opening — the tech detail lives in the execution cards, not the front door.
+  $('zero').innerHTML = `
+    <div class="eq"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div>
+      <div class="kick">VISHWA × RIFT · EXECUTION DESK</div>
+      <div class="zeroq">Say it.<br><em>Settled.</em></div>
+      <div class="ghost" id="ghost"></div>
+      <div class="zerometa">20+ VENUES · POLICY-GATED · SIGNED RECEIPTS</div>
     </div>`;
+  // Ghost prompt — cycles what you can say, terminal style.
+  (function ghost(){
+    const el = $('ghost'); if(!el) return;
+    const GS = ['Sell $500K of bitcoin','Find me better yield','What do I own?'];
+    let i = 0;
+    function type(s, p, dir){
+      if($('zero').classList.contains('gone')) return;
+      el.innerHTML = '“' + s.slice(0,p) + '”' + '<span class="caret"></span>';
+      if(dir>0 && p===s.length) return setTimeout(()=>type(s,p,-1), 1700);
+      if(dir<0 && p===0){ i=(i+1)%GS.length; return setTimeout(()=>type(GS[i],0,1), 400); }
+      setTimeout(()=>type(s,p+dir,dir), dir>0?50:22);
+    }
+    type(GS[0],0,1);
+  })();
   hints(['Sell $500K of bitcoin','Find me better yield','What do I own?']);
   handsFree = true;
   $('mstat').textContent = 'HANDS-FREE — JUST TALK';
-  setTimeout(()=>{ speak(`Desk is live. Positions and limits are loaded — give me an order.`); }, 900);
+  // No boot voice line: pre-gesture audio gets blocked and falls back to the robotic
+  // system voice — the agent speaks when spoken to.
 }else{
   hints(['Buy some bitcoin','I have cash sitting idle']);
-  setTimeout(()=>{ speak(`What do you want to own? Just say it — no account, no forms, no keyboard.`); }, 900);
+  // Boot line plays on first touch — pre-gesture audio would fall back to the robotic system voice.
+  window.addEventListener('pointerdown', ()=>{ if(S.stage==='cold' && !listening) speak(`What do you want to own? Just say it — no account, no forms, no keyboard.`); }, {once:true});
 }
 if(window.speechSynthesis) speechSynthesis.getVoices();
 // Desktop: spacebar toggles the mic — presenter can stay out of frame.
